@@ -32,7 +32,7 @@ mod framework {
 
 /// Fills `dest` with random bytes.
 ///
-/// Returns 0 on success, or some other value on failure. See [`SecOsStatus`](SecOsStatus).
+/// Returns 0 on success, or some other value on failure. See [`SecOsStatus`].
 pub(crate) fn sec_random_copy_bytes(dest: &mut [u8]) -> SecOsStatus {
     use std::ptr::null;
 

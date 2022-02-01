@@ -5,4 +5,10 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #[cfg(target_os = "macos")]
-pub(crate) mod apple;
+mod apple;
+
+mod error;
+mod os_random;
+
+pub use error::GetOsRandomBytesError;
+pub use os_random::get_os_random_bytes;
