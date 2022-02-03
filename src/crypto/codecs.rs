@@ -16,8 +16,10 @@
 //! [2]: https://github.com/jedisct1/libsodium/blob/64129657a5c67f3bab84562aa8d57dacc685cc75/src/libsodium/sodium/codecs.c#L12-L101
 //! [3]: https://git.zx2c4.com/wireguard-tools/tree/src/encoding.c?id=d8230ea0dcb02d716125b2b3c076f2de40ebed99#n74
 //! [4]: https://stackoverflow.com/questions/311165/how-do-you-convert-a-byte-array-to-a-hexadecimal-string-and-vice-versa#answer-14333437
+use std::fmt;
+use std::fmt::Display;
 
-/// Converts `bytes` into a lowercase hexadecimal representation.
+/// Returns lowercase hexadecimal representation of `bytes`.
 ///
 /// Each byte is converted into the corresponding 2-digit hex representation.
 ///
@@ -30,7 +32,7 @@
 /// assert_eq!(hex, "137acf");
 /// ```
 pub fn bytes_to_hex(bytes: &[u8]) -> String {
-    // 1 byte expands to 2 corresponding UTF8 chars.
+    // 1 byte expands to 2 corresponding hexadecimal digits.
     let mut data = Vec::with_capacity(bytes.len() * 2);
 
     for byte in bytes {
@@ -46,7 +48,7 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
         //
         // 2. ``lhs_i8 >> 7``:
         //
-        //     Using ``>> 7`` on lhs_i8 extracts the sign, thanks to sign extension.
+        //     Using ``>> 7`` on lhs_i8 extracts the sign[^1].
         //     The result is -1 for lhs_i8 < 0, and 0 for lhs_i8 >= 0.
         //
         // 3. Combining 1 and 2, `(nibble - 10) >> 7`:
@@ -62,9 +64,74 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
         //     the result is [48, 57] for [0x0, 0x9], and [97, 102] for [0xa, 0xf].
         //     In ASCII, [48, 57] represents chars '0' to '9',
         //     and [97, 102] represents chars 'a' to 'f'.
+        //
+        // [^1]: `>>` performs arithmetic right shift on signed integer types.
+        //     https://doc.rust-lang.org/reference/expressions/operator-expr.html#arithmetic-and-logical-binary-operators
         data.push((87 + high_nibble + (((high_nibble - 10) >> 7) & -39)) as u8);
         data.push((87 + low_nibble + (((low_nibble - 10) >> 7) & -39)) as u8);
     }
 
     unsafe { String::from_utf8_unchecked(data) }
+}
+
+/// Returns bytes represented by the hexadecimal string `hex`.
+///
+/// `hex` is a string composed of hexadecimal digits: [0-9a-fA-F].
+///
+/// # Errors
+///
+/// Will return an error if:
+/// - `hex` contains non-hexadecimal digits.
+/// - The len of `hex` isn't even.
+pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, CodecsError> {
+    let hex_len_is_even = { hex.len() & 1 == 0 };
+    if !hex_len_is_even {
+        return Err(CodecsError::NotByteAligned);
+    }
+
+    let mut bytes = Vec::with_capacity(hex.len() / 2);
+    for chunk in hex.as_bytes().chunks_exact(2) {
+        let c = chunk[0] as u16;
+
+        let c_num = c ^ 48;
+        let c_num0 = c_num.wrapping_sub(10) >> 8;
+        let c_alpha = (c & !32).wrapping_sub(55);
+        let c_alpha0 = (c_alpha.wrapping_sub(10) ^ c_alpha.wrapping_sub(16)) >> 8;
+        if (c_num0 | c_alpha0) == 0 {
+            return Err(CodecsError::InvalidCharFound);
+        }
+        let c_val = (c_num0 & c_num) | (c_alpha0 & c_alpha);
+        let mut c_acc = (c_val as u8) << 4;
+
+        let c = chunk[1] as u16;
+        let c_num = c ^ 48;
+        let c_num0 = c_num.wrapping_sub(10) >> 8;
+        let c_alpha = (c & !32).wrapping_sub(55);
+        let c_alpha0 = (c_alpha.wrapping_sub(10) ^ c_alpha.wrapping_sub(16)) >> 8;
+        if (c_num0 | c_alpha0) == 0 {
+            return Err(CodecsError::InvalidCharFound);
+        }
+        let c_val = (c_num0 & c_num) | (c_alpha0 & c_alpha);
+        c_acc |= c_val as u8;
+
+        bytes.push(c_acc);
+    }
+
+    Ok(bytes)
+}
+
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+pub enum CodecsError {
+    InvalidCharFound,
+    NotByteAligned,
+}
+
+impl Display for CodecsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CodecsError::InvalidCharFound => write!(f, "Invalid char found"),
+            CodecsError::NotByteAligned => write!(f, "Not byte aligned"),
+        }
+    }
 }

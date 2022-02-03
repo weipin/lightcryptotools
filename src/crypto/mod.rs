@@ -7,3 +7,5 @@
 mod codecs;
 
 pub use codecs::bytes_to_hex;
+pub use codecs::hex_to_bytes;
+pub use codecs::CodecsError;

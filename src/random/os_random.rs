@@ -15,7 +15,7 @@ use super::error::GetOsRandomBytesError;
 ///
 /// # Errors
 ///
-/// Will return Err if the underlying system routine fails.
+/// Will return an error if the underlying system routine fails.
 pub fn get_os_random_bytes(len: usize) -> Result<Vec<u8>, GetOsRandomBytesError> {
     #[cfg(target_os = "macos")]
     use super::apple::get_os_random_bytes_imp;
