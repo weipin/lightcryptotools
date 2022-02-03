@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-//! Get cryptographically secure random bytes from operating system.
+//! Gets cryptographically secure random bytes from operating system.
 //!
 //! # Examples
 //!
@@ -25,7 +25,7 @@ fn main() {
             println!("bytes: 0x{hex}");
         }
         Err(err) => {
-            println!("failed: {err:?}");
+            println!("failed: {err}");
         }
     }
 }
