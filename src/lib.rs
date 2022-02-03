@@ -7,3 +7,6 @@
 pub mod crypto;
 mod os;
 pub mod random;
+
+#[cfg(test)]
+mod testing_tools;

@@ -148,6 +148,8 @@ impl Display for CodecsError {
 #[cfg(test)]
 mod tests {
     use crate::crypto::*;
+    use crate::testing_tools::quickcheck::HexString;
+    use ::quickcheck_macros::quickcheck;
 
     #[test]
     fn empty_bytes_to_hex() {
@@ -207,5 +209,11 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[quickcheck]
+    fn hex_to_bytes_double_conversion(hex: HexString) -> bool {
+        let bytes = hex_to_bytes(&hex.0).unwrap();
+        bytes_to_hex(&bytes) == hex.0.to_lowercase()
     }
 }
