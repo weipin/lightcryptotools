@@ -22,7 +22,7 @@ fn main() {
     match get_os_random_bytes(bytes_len) {
         Ok(bytes) => {
             let hex = bytes_to_hex(&bytes);
-            println!("bytes: 0x{hex}")
+            println!("bytes: 0x{hex}");
         }
         Err(err) => {
             println!("failed: {err:?}");
