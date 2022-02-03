@@ -83,6 +83,15 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
 /// Will return an error if:
 /// - `hex` contains non-hexadecimal digits.
 /// - The len of `hex` isn't even.
+///
+/// # Examples
+///
+/// ```
+/// use lightcryptotools::crypto::hex_to_bytes;
+///
+/// let bytes = hex_to_bytes("137acf").unwrap();
+/// assert_eq!(bytes, &[0x13, 0x7a, 0xcf]);
+/// ```
 pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, CodecsError> {
     let hex_len_is_even = { hex.len() & 1 == 0 };
     if !hex_len_is_even {
@@ -120,7 +129,7 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, CodecsError> {
     Ok(bytes)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum CodecsError {
     InvalidCharFound,
@@ -132,6 +141,71 @@ impl Display for CodecsError {
         match self {
             CodecsError::InvalidCharFound => write!(f, "Invalid char found"),
             CodecsError::NotByteAligned => write!(f, "Not byte aligned"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::crypto::*;
+
+    #[test]
+    fn empty_bytes_to_hex() {
+        assert_eq!(bytes_to_hex(&[]).is_empty(), true);
+    }
+
+    #[test]
+    fn empty_hex_to_bytes() {
+        assert_eq!(hex_to_bytes("").unwrap().is_empty(), true);
+    }
+
+    #[test]
+    fn hex_to_bytes_not_byte_aligned() {
+        let err = hex_to_bytes("d559b").err().unwrap();
+        assert_eq!(err, CodecsError::NotByteAligned);
+    }
+
+    #[test]
+    fn hex_to_bytes_invalid_char_found() {
+        let err = hex_to_bytes("d55G9b").err().unwrap();
+        assert_eq!(err, CodecsError::InvalidCharFound);
+    }
+
+    #[test]
+    fn byte_values_double_conversion() {
+        // For each value in [0, 255] as one byte,
+        // convert the byte to hex and back again.
+        let mut count = 0;
+        for i in u8::MIN..=u8::MAX {
+            let hex = bytes_to_hex(&[i]);
+            let byte = hex_to_bytes(&hex).unwrap()[0];
+            assert_eq!(i, byte);
+
+            count += 1;
+        }
+        assert_eq!(count, 256);
+    }
+
+    #[test]
+    fn hex_to_bytes_input_char_validation_check() {
+        // Go through all the combinations for a two-character string,
+        // and feed the strings to `hex_to_bytes`.
+        // Should return `CodecsError::InvalidCharFound` for any character not in [0-9a-fA-F].
+        for i in u8::MIN..=u8::MAX {
+            for j in u8::MIN..=u8::MAX {
+                let bytes = [i, j];
+                let hex = unsafe { std::str::from_utf8_unchecked(&bytes) };
+
+                if i.is_ascii_hexdigit() && j.is_ascii_hexdigit() {
+                    assert_eq!(
+                        bytes_to_hex(&hex_to_bytes(hex).unwrap()),
+                        hex.to_lowercase()
+                    )
+                } else {
+                    let err = hex_to_bytes(hex).err().unwrap();
+                    assert_eq!(err, CodecsError::InvalidCharFound);
+                }
+            }
         }
     }
 }
