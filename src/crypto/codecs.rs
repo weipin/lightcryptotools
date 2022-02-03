@@ -102,10 +102,31 @@ pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, CodecsError> {
     for chunk in hex.as_bytes().chunks_exact(2) {
         let c = chunk[0] as u16;
 
+        // The result is [0, 9] for `c` in [48, 57],
+        // and > 9 for the rest.
         let c_num = c ^ 48;
+
+        // The result is 0xff for `c_num` in [0, 9],
+        // and 0 for the rest.
         let c_num0 = c_num.wrapping_sub(10) >> 8;
+
+        // The result is [10, 15] for `c` in both [65, 70] and [97, 102].
         let c_alpha = (c & !32).wrapping_sub(55);
+
+        // 1. `c_alpha.wrapping_sub(10)`:
+        //
+        //     The result is [0, 5] for `c_alpha` in [10, 15].
+        //
+        // 2. `c_alpha.wrapping_sub(16)`:
+        //
+        //     The result is [0xfffa, 0xffff] for `c_alpha` in [10, 15].
+        //
+        // 3. `(c_alpha.wrapping_sub(10) ^ c_alpha.wrapping_sub(16)) >> 8`
+        //
+        //     The result is 0xff for `c_alpha` in both [65, 70] and [97, 102],
+        //     and 0 for the rest.
         let c_alpha0 = (c_alpha.wrapping_sub(10) ^ c_alpha.wrapping_sub(16)) >> 8;
+
         if (c_num0 | c_alpha0) == 0 {
             return Err(CodecsError::InvalidCharFound);
         }
@@ -176,7 +197,7 @@ mod tests {
     #[test]
     fn byte_values_double_conversion() {
         // For each value in [0, 255] as one byte,
-        // convert the byte to hex and back again.
+        // converts the byte to hex and back again.
         let mut count = 0;
         for i in u8::MIN..=u8::MAX {
             let hex = bytes_to_hex(&[i]);
@@ -190,8 +211,8 @@ mod tests {
 
     #[test]
     fn hex_to_bytes_input_char_validation_check() {
-        // Go through all the combinations for a two-character string,
-        // and feed the strings to `hex_to_bytes`.
+        // Goes through all the combinations for a two-character string,
+        // and feeds the strings to `hex_to_bytes`.
         // Should return `CodecsError::InvalidCharFound` for any character not in [0-9a-fA-F].
         for i in u8::MIN..=u8::MAX {
             for j in u8::MIN..=u8::MAX {
