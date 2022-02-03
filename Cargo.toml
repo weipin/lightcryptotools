@@ -11,3 +11,7 @@ edition = "2021"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
 
+[[bin]]
+path = "bin/randombytes.rs"
+name = "randombytes"
+
