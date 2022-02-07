@@ -5,15 +5,14 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Implements system-call wrappers for both iOS and macOS.
-use std::os::raw::c_int;
 
-/// Type represents [`OsStatus`][1] from Apple Security projects
-///
-/// [1]: https://github.com/apple-oss-distributions/Security/blob/Security-59754.140.13/base/SecBase.h#L323
-pub type SecOsStatus = c_int;
+#[cfg(test)]
+use mockall::automock;
 
-mod framework {
-    use super::SecOsStatus;
+#[cfg_attr(test, automock)]
+#[allow(dead_code)]
+pub(crate) mod security_internal {
+    use crate::os::SecOsStatus;
     use std::ffi::c_void;
 
     #[link(name = "Security", kind = "framework")]
@@ -22,13 +21,20 @@ mod framework {
         // `int SecRandomCopyBytes(SecRandomRef rnd, size_t count, void *bytes);`
         //
         // [1]: https://developer.apple.com/documentation/security/1399291-secrandomcopybytes?language=objc
-        pub(super) fn SecRandomCopyBytes(
+        #[allow(non_snake_case)]
+        pub(crate) fn SecRandomCopyBytes(
             rnd: *const c_void,
             count: usize,
             bytes: *mut u8,
         ) -> SecOsStatus;
     }
 }
+
+#[cfg(test)]
+pub(crate) use self::mock_security_internal as security;
+use crate::os::SecOsStatus;
+#[cfg(not(test))]
+pub(crate) use security_internal as security;
 
 /// Fills `dest` with random bytes.
 ///
@@ -40,5 +46,5 @@ pub(crate) fn sec_random_copy_bytes(dest: &mut [u8]) -> SecOsStatus {
     // which ["is a synonym for NULL"][1]
     //
     // [1]: https://developer.apple.com/documentation/security/ksecrandomdefault?language=objc
-    unsafe { framework::SecRandomCopyBytes(null(), dest.len(), dest.as_mut_ptr()) }
+    unsafe { security::SecRandomCopyBytes(null(), dest.len(), dest.as_mut_ptr()) }
 }

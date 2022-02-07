@@ -4,15 +4,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#[cfg(target_os = "macos")]
-mod apple;
-#[cfg(target_os = "linux")]
-mod linux;
-#[cfg(target_os = "windows")]
-mod windows;
+//! Implements "errno" for Linux.
 
-mod error;
-mod os_random;
+use super::LibcErrno;
 
-pub use error::GetOsRandomBytesError;
-pub use os_random::get_os_random_bytes;
+/// Returns the platform-specific "errno".
+pub(crate) fn errno() -> LibcErrno {
+    use super::linux::libc;
+
+    unsafe { (*libc::__errno_location()) as LibcErrno }
+}

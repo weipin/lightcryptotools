@@ -6,7 +6,7 @@
 
 use super::error::GetOsRandomBytesError;
 
-/// Gets cryptographically secure random bytes with the specified `len`.
+/// Returns cryptographically secure random bytes with the specified `len`.
 ///
 /// The random bytes is provided by an operating system routine:
 /// - `getrandom(2)` on Linux.
@@ -16,9 +16,13 @@ use super::error::GetOsRandomBytesError;
 /// # Errors
 ///
 /// Will return an error if the underlying system routine fails.
-pub fn get_os_random_bytes(len: usize) -> Result<Vec<u8>, GetOsRandomBytesError> {
+pub fn get_os_random_bytes(len: u32) -> Result<Vec<u8>, GetOsRandomBytesError> {
     #[cfg(target_os = "macos")]
-    use super::apple::get_os_random_bytes_imp;
+    use super::apple::get_os_random_bytes_impl;
+    #[cfg(target_os = "linux")]
+    use super::linux::get_os_random_bytes_impl;
+    #[cfg(target_os = "windows")]
+    use super::windows::get_os_random_bytes_impl;
 
-    get_os_random_bytes_imp(len)
+    get_os_random_bytes_impl(len)
 }

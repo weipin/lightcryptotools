@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 
 [dev-dependencies]
+mockall = "0.11.0"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
 
