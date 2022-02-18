@@ -1,3 +1,4 @@
+use crate::bigint::DIGIT_BYTES;
 use quickcheck::{Arbitrary, Gen};
 
 #[derive(Debug)]
@@ -34,6 +35,31 @@ impl Arbitrary for HexString {
             v.push(HexChar::arbitrary(g));
             v.push(HexChar::arbitrary(g));
         } else if v.len() & 1 != 0 {
+            v.push(HexChar::arbitrary(g));
+        }
+
+        let v_char: Vec<u8> = v.iter().map(|x| x.0).collect();
+        Self(String::from(from_utf8(&v_char).unwrap()))
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct BigIntHexString(pub(crate) String);
+
+impl Clone for BigIntHexString {
+    fn clone(&self) -> Self {
+        BigIntHexString(self.0.clone())
+    }
+}
+
+impl Arbitrary for BigIntHexString {
+    fn arbitrary(g: &mut Gen) -> Self {
+        use std::str::from_utf8;
+
+        let mut v = Vec::<HexChar>::arbitrary(g);
+        let digit_char_len = DIGIT_BYTES as usize * 2;
+        let padding_len = digit_char_len - v.len() % digit_char_len;
+        for _ in 0..padding_len {
             v.push(HexChar::arbitrary(g));
         }
 

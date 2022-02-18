@@ -16,6 +16,7 @@
 //! [2]: https://github.com/jedisct1/libsodium/blob/64129657a5c67f3bab84562aa8d57dacc685cc75/src/libsodium/sodium/codecs.c#L12-L101
 //! [3]: https://git.zx2c4.com/wireguard-tools/tree/src/encoding.c?id=d8230ea0dcb02d716125b2b3c076f2de40ebed99#n74
 //! [4]: https://stackoverflow.com/questions/311165/how-do-you-convert-a-byte-array-to-a-hexadecimal-string-and-vice-versa#answer-14333437
+
 use std::fmt;
 use std::fmt::Display;
 
@@ -168,7 +169,7 @@ impl Display for CodecsError {
 
 #[cfg(test)]
 mod tests {
-    use crate::crypto::*;
+    use super::*;
     use crate::testing_tools::quickcheck::HexString;
     use ::quickcheck_macros::quickcheck;
 
@@ -184,13 +185,13 @@ mod tests {
 
     #[test]
     fn hex_to_bytes_not_byte_aligned() {
-        let err = hex_to_bytes("d559b").err().unwrap();
+        let err = hex_to_bytes("d559b").unwrap_err();
         assert_eq!(err, CodecsError::NotByteAligned);
     }
 
     #[test]
     fn hex_to_bytes_invalid_char_found() {
-        let err = hex_to_bytes("d55G9b").err().unwrap();
+        let err = hex_to_bytes("d55G9b").unwrap_err();
         assert_eq!(err, CodecsError::InvalidCharFound);
     }
 
@@ -225,7 +226,7 @@ mod tests {
                         hex.to_lowercase()
                     )
                 } else {
-                    let err = hex_to_bytes(hex).err().unwrap();
+                    let err = hex_to_bytes(hex).unwrap_err();
                     assert_eq!(err, CodecsError::InvalidCharFound);
                 }
             }
