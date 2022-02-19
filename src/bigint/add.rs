@@ -75,21 +75,29 @@ pub(crate) fn add_digits(a: &BigUintSlice, b: &BigUintSlice, result: &mut [Digit
     result_digits_len
 }
 
-impl<'a> Add<&'a BigInt> for &'a BigInt {
+impl<'a, 'b> Add<&'b BigInt> for &'a BigInt {
     type Output = BigInt;
 
     fn add(self, rhs: &BigInt) -> Self::Output {
         let a = self.as_digits();
         let b = rhs.as_digits();
-        let mut output = digitvec_add_output(a.len(), b.len());
+        let mut output = digitvec_adding_output(a.len(), b.len());
         let output_len = add_digits(a, b, &mut output);
 
         BigInt::new(output, output_len, Sign::Positive)
     }
 }
 
+impl<'a> Add<&'a BigInt> for BigInt {
+    type Output = BigInt;
+
+    fn add(self, rhs: &Self) -> Self::Output {
+        (&self).add(rhs)
+    }
+}
+
 impl Add for BigInt {
-    type Output = Self;
+    type Output = BigInt;
 
     fn add(self, rhs: Self) -> Self::Output {
         (&self).add(&rhs)
@@ -108,7 +116,7 @@ fn adding_output_max_len(a_len: usize, b_len: usize) -> usize {
 ///
 /// `a_len` and `b_len` are the length of the operands.
 #[inline]
-fn digitvec_add_output(a_len: usize, b_len: usize) -> DigitVec {
+fn digitvec_adding_output(a_len: usize, b_len: usize) -> DigitVec {
     let max_len = adding_output_max_len(a_len, b_len);
     digitvec_with_len(max_len)
 }
@@ -120,7 +128,7 @@ fn digitvec_add_output(a_len: usize, b_len: usize) -> DigitVec {
 #[cfg(test)]
 #[inline]
 fn digitvec_adding_output_filled_1(a_len: usize, b_len: usize) -> DigitVec {
-    let mut vec = digitvec_add_output(a_len, b_len);
+    let mut vec = digitvec_adding_output(a_len, b_len);
     vec.fill(1);
     vec
 }

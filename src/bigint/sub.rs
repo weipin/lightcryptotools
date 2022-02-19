@@ -81,7 +81,7 @@ pub(crate) fn sub_digits(a: &BigUintSlice, b: &BigUintSlice, result: &mut [Digit
     len_digits(result)
 }
 
-impl<'a> Sub<&'a BigInt> for &'a BigInt {
+impl<'a, 'b> Sub<&'b BigInt> for &'a BigInt {
     type Output = BigInt;
 
     fn sub(self, rhs: &BigInt) -> Self::Output {
@@ -91,6 +91,14 @@ impl<'a> Sub<&'a BigInt> for &'a BigInt {
         let output_len = sub_digits(a, b, &mut output);
 
         BigInt::new(output, output_len, Sign::Positive)
+    }
+}
+
+impl<'a> Sub<&'a BigInt> for BigInt {
+    type Output = BigInt;
+
+    fn sub(self, rhs: &Self) -> Self::Output {
+        (&self).sub(rhs)
     }
 }
 

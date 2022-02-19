@@ -20,5 +20,5 @@ mod mul;
 mod sub;
 mod zero;
 
-pub use bigint_core::BigInt;
-pub use digit::DIGIT_BYTES;
+pub use bigint_core::{BigInt, Sign};
+pub use digit::{Digit, DIGIT_BYTES};

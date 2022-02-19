@@ -93,16 +93,20 @@ fn div_rem_digits(
     // Another difference from the normal long division is that for each step,
     // only a "window" of the remaining dividend is involved.
     //
-    // To better demonstrate the algorithm, a step by step work through of 3142/53 is provided below.
+    // To demonstrate the algorithm, a step by step work through of 3142/53 is provided below.
     // - To help realize the situation, the base number is 10 (b = 10).
     // - Ignores the normalizing step.
-    // - Ignores the borrow checking for the rare case ``q_hat - 3 = q``, which requires another padding.
     //
-    // | #step | remaining dividend | dividend window | q | remain | accumulating quotient |
-    // | ----- | ------------------ | --------------- | - | ------ | --------------------- |
-    // | 1     | 03142              | 031/53          | 0 | 31     | 0                     |
-    // | 2     |  3142              | 314/53          | 5 | 49     | 05                    |
-    // | 3     |   492              | 492/53          | 9 | 15*    | 059*                  |
+    // | #step | digits storage  | dividend window | q   | remain | accumulating quotient |
+    // |-------|-----------------|-----------------|-----|--------|-----------------------|
+    // | 1     | 03142           | 031/53          | 0   | 31     | 0                     |
+    // |       | ⌞⎽⌟             |                 |     |        |                       |
+    // |       |                 |                 |     |        |                       |
+    // | 2     | 03142           | 314/53          | 5   | 49     | 05                    |
+    // |       |  ⌞⎽⌟            |                 |     |        |                       |
+    // |       |                 |                 |     |        |                       |
+    // | 3     | 00492           | 492/53          | 9   | 15*    | 059*                  |
+    // |       |   ⌞⎽⌟           |                 |     |        |                       |
     //
     // *: final result
 
@@ -355,7 +359,7 @@ fn div_rem_digits(
     (len_digits(quotient), len_digits(remainder))
 }
 
-impl<'a> Div<&'a BigInt> for &'a BigInt {
+impl<'a, 'b> Div<&'b BigInt> for &'a BigInt {
     type Output = BigInt;
 
     fn div(self, rhs: &BigInt) -> Self::Output {
@@ -369,6 +373,14 @@ impl<'a> Div<&'a BigInt> for &'a BigInt {
     }
 }
 
+impl<'a> Div<&'a BigInt> for BigInt {
+    type Output = BigInt;
+
+    fn div(self, rhs: &Self) -> Self::Output {
+        (&self).div(rhs)
+    }
+}
+
 impl Div for BigInt {
     type Output = Self;
 
@@ -377,10 +389,10 @@ impl Div for BigInt {
     }
 }
 
-impl<'a> Rem<&'a BigInt> for &'a BigInt {
+impl<'a, 'b> Rem<&'b BigInt> for &'a BigInt {
     type Output = BigInt;
 
-    fn rem(self, rhs: Self) -> Self::Output {
+    fn rem(self, rhs: &BigInt) -> Self::Output {
         let a = self.as_digits();
         let b = rhs.as_digits();
         let mut quotient = digitvec_div_rem_quotient(a.len());
@@ -388,6 +400,14 @@ impl<'a> Rem<&'a BigInt> for &'a BigInt {
         let (_, remainder_len) = div_rem_digits(a, b, &mut quotient, &mut remainder);
 
         BigInt::new(remainder, remainder_len, Sign::Positive)
+    }
+}
+
+impl<'a> Rem<&'a BigInt> for BigInt {
+    type Output = BigInt;
+
+    fn rem(self, rhs: &Self) -> Self::Output {
+        (&self).rem(rhs)
     }
 }
 
@@ -472,7 +492,7 @@ mod tests {
             let quotient = &dividend / &divisor;
             let remainder = &dividend % &divisor;
 
-            let mul_add_result = &quotient * &divisor + remainder;
+            let mul_add_result = &quotient * &divisor + &remainder;
             dividend == mul_add_result
         }
 

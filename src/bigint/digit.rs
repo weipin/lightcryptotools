@@ -14,7 +14,7 @@
 //! a larger one must exist and be used as "double-digit".
 //! Arithmetic operations will often be performed on the double-digit type.
 
-pub(crate) type Digit = u64;
+pub type Digit = u64;
 pub(crate) type DoubleDigit = u128;
 
 pub(crate) const DIGIT_BITS: u32 = Digit::BITS;

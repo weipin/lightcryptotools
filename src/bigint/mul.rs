@@ -89,7 +89,7 @@ pub(crate) fn mul_digits(a: &BigUintSlice, b: &BigUintSlice, result: &mut [Digit
     len_digits(result)
 }
 
-impl<'a> Mul<&'a BigInt> for &'a BigInt {
+impl<'a, 'b> Mul<&'b BigInt> for &'a BigInt {
     type Output = BigInt;
 
     fn mul(self, rhs: &BigInt) -> Self::Output {
@@ -99,6 +99,14 @@ impl<'a> Mul<&'a BigInt> for &'a BigInt {
         let output_len = mul_digits(a, b, &mut output);
 
         BigInt::new(output, output_len, Sign::Positive)
+    }
+}
+
+impl<'a> Mul<&'a BigInt> for BigInt {
+    type Output = BigInt;
+
+    fn mul(self, rhs: &Self) -> Self::Output {
+        (&self).mul(rhs)
     }
 }
 
