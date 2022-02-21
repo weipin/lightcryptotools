@@ -90,14 +90,12 @@ fn div_rem_digits(
     // Algorithm D is similar to long division but eliminates the guesswork part.
     // It requires one zero padding at the most significant digit of the dividend to work,
     // e.g., 1234 is padded as 01234.
-    // Another difference from the normal long division is that for each step,
-    // only a "window" of the remaining dividend is involved.
     //
     // To demonstrate the algorithm, a step by step work through of 3142/53 is provided below.
     // - To help realize the situation, the base number is 10 (b = 10).
-    // - Ignores the normalizing step.
+    // - The normalizing step is omitted.
     //
-    // | #step | digits storage  | dividend window | q   | remain | accumulating quotient |
+    // | #step | digits storage  | dividend window | q   | remain | accumulated quotient  |
     // |-------|-----------------|-----------------|-----|--------|-----------------------|
     // | 1     | 03142           | 031/53          | 0   | 31     | 0                     |
     // |       | ⌞⎽⌟             |                 |     |        |                       |
@@ -236,17 +234,19 @@ fn div_rem_digits(
 
             // Calculates `q_hat` and `r_hat`.
             //
-            // `q_hat`:
-            // 1. From the algorithm D:
-            // ```
-            // q_hat = std::cmp::min(
-            //     (dividend0_normalized * b + dividend1_normalized) / divisor0_normalized,
-            //     Digit::MAX,
-            // );
-            // ```
+            // * `q_hat`:
+            //   1. From the algorithm D:
+            //       ```
+            //       q_hat = std::cmp::min(
+            //           (dividend0_normalized * b + dividend1_normalized) / divisor0_normalized,
+            //           Digit::MAX,
+            //       );
+            //       ```
+            //  2. Distinguishes the cases by evaluating a branch condition:
+            //      `dividend0_normalized == divisor0_normalized`.
             //
-            // 2. Distinguishes the cases by evaluating a branch condition:
-            // `dividend0_normalized == divisor0_normalized`.
+            //
+            // * `q_hat_found`: to ignore the `q_hat > q` test.
             //
             //
             // Knuth's Algorithm D uses [the hat operator][1], a mathematical notation,
@@ -254,7 +254,8 @@ fn div_rem_digits(
             // Hence the postfix "_hat" in the corresponding variable names.
             //
             // [1]: https://en.wikipedia.org/wiki/Hat_operator
-            let (mut q_hat, r_hat) = if dividend0_normalized == divisor0_normalized {
+            let (mut q_hat, r_hat, q_hat_found) = if dividend0_normalized == divisor0_normalized
+            {
                 // For `dividend0_normalized == divisor0_normalized`, `q_hat >= (b - 1)`.
                 let q_hat = Digit::MAX as DoubleDigit; // min(q_hat, Digit::MAX)
 
@@ -267,7 +268,19 @@ fn div_rem_digits(
                 // = dividend1_normalized + divisor0_normalized
                 // ```
                 let r_hat = dividend1_normalized + divisor0_normalized;
-                (q_hat, r_hat)
+
+                // For `dividend0_normalized == divisor0_normalized`,
+                // it's possible that `r_hat > b` (rare).
+                // If this case happens, ignores the `q_hat > q` check.
+                //
+                // 1. The test will always fail, for `(r_hat * b + dividend2_normalized) > b^2`.
+                // 2. The calculation above will overflow the `DoubleDigit`.
+                // 3. Combines 1 and 2, sets `q_hat_found = true` for `r_hat > b`.
+                if r_hat <= Digit::MAX as DoubleDigit {
+                    (q_hat, Some(r_hat), false)
+                } else {
+                    (q_hat, None, true)
+                }
             } else {
                 // - For `dividend0_normalized < divisor0_normalized`, `q_hat < (b - 1)`.
                 // - For `dividend0_normalized > divisor0_normalized`, the condition is invalid
@@ -275,45 +288,52 @@ fn div_rem_digits(
                 let t = (dividend0_normalized << DIGIT_BITS) | dividend1_normalized;
                 let q_hat = t / divisor0_normalized;
                 let r_hat = t % divisor0_normalized;
-                (q_hat, r_hat)
+
+                (q_hat, Some(r_hat), false)
             };
 
-            // Tests `q_hat > q` by
-            // `q_hat * divisor1_normalized > (r_hat * b + dividend2_normalized)`
-            let mut lhs = q_hat * divisor1_normalized;
-            let mut rhs = (r_hat << DIGIT_BITS) | dividend2_normalized;
+            if !q_hat_found {
+                let r_hat = r_hat.unwrap();
 
-            if lhs > rhs {
-                q_hat -= 1;
+                // Tests `q_hat > q` by
+                // `q_hat * divisor1_normalized > (r_hat * b + dividend2_normalized)`
+                let mut lhs = q_hat * divisor1_normalized;
 
-                // Tests `q_hat > q` the second time.
-                //
-                // For `q_hat -= 1`,
-                // `lhs` becomes `lhs - divisor1_normalized`, and
-                // `rhs` becomes `rhs + divisor0_normalized * b`.
-                //
-                // 1. `rhs > b^2` for `(r_hat + divisor0_normalized) >= b`:
-                // ```
-                // rhs = rhs + divisor0_normalized * b
-                // = r_hat * b + dividend2_normalized + divisor0_normalized * b
-                // = (r_hat + divisor0_normalized) * b + dividend2_normalized
-                // > b^2
-                // ```
-                //
-                // 2. We already know that `lhs < b^2`.
-                //
-                // 3. Combines 1 and 2, for `(r_hat + divisor0_normalized) >= b`,
-                // `lhs > rhs` is false (that is `q_hat = q`).
-                //
-                // 4. For 1, the calculation of `rhs` will overflow the `DoubleDigit`.
-                //
-                // 5. Combines 3 and 4, the `q_hat > q` test is only performed when
-                // `(r_hat + divisor0_normalized) < b`.
-                if (r_hat + divisor0_normalized) >> DIGIT_BITS == 0 {
-                    lhs -= divisor1_normalized;
-                    rhs += divisor0_normalized << DIGIT_BITS;
-                    if lhs > rhs {
-                        q_hat -= 1;
+                debug_assert!(r_hat <= Digit::MAX as DoubleDigit); // to ensure `r_hat << DIGIT_BITS` won't overflow
+                let mut rhs = (r_hat << DIGIT_BITS) + dividend2_normalized;
+
+                if lhs > rhs {
+                    q_hat -= 1;
+
+                    // Tests `q_hat > q` the second time.
+                    //
+                    // For `q_hat -= 1`,
+                    // `lhs` becomes `lhs - divisor1_normalized`, and
+                    // `rhs` becomes `rhs + divisor0_normalized * b`.
+                    //
+                    // 1. `rhs > b^2` for `(r_hat + divisor0_normalized) >= b`:
+                    // ```
+                    // rhs = rhs + divisor0_normalized * b
+                    // = r_hat * b + dividend2_normalized + divisor0_normalized * b
+                    // = (r_hat + divisor0_normalized) * b + dividend2_normalized
+                    // > b^2
+                    // ```
+                    //
+                    // 2. We already know that `lhs < b^2`.
+                    //
+                    // 3. Combines 1 and 2, for `(r_hat + divisor0_normalized) >= b`,
+                    // `lhs > rhs` is false (that is `q_hat = q`).
+                    //
+                    // 4. For 1, the calculation of `rhs` will overflow the `DoubleDigit`.
+                    //
+                    // 5. Combines 3 and 4, the `q_hat > q` test is only performed when
+                    // `(r_hat + divisor0_normalized) < b`.
+                    if (r_hat + divisor0_normalized) <= Digit::MAX as DoubleDigit {
+                        lhs -= divisor1_normalized;
+                        rhs += divisor0_normalized << DIGIT_BITS;
+                        if lhs > rhs {
+                            q_hat -= 1;
+                        }
                     }
                 }
             }
@@ -480,15 +500,66 @@ fn digitvec_div_rem_remainder(divisor_len: usize) -> DigitVec {
 mod tests {
     use super::*;
     use crate::testing_tools::quickcheck::BigIntHexString;
-    use quickcheck::QuickCheck;
+    use quickcheck::{Gen, QuickCheck};
+
+    #[test]
+    #[should_panic(expected = "attempt to divide by zero")]
+    fn test_divisor_is_zero() {
+        let _ = BigInt::from(123) / BigInt::from(0);
+    }
+
+    #[test]
+    fn test_div_cases() {
+        let data = [
+            // `r_hat > Digit::MAX` for `Digit` is u8
+            ("4e432fBecBAF6B2EfE401dC31caC3C74b46cB1ACc826", "D0F8C7ae"),
+
+            // dividend is zero
+            ("00", "D0F8"),
+
+            // dividend equals divisor
+            ("4e432fBe", "4e432fBe"),
+
+            // dividend less than_divisor
+            ("D0F8C7ae", "4e432fBecBAF6B2EfE401dC31caC3C74b46cB1ACc826"),
+
+            // one place divisor
+            ("4e432fBecBAF6B2EfE401dC31caC3C74b46cB1ACc826", "C7"),
+
+            // ``q_hat - 3 == q`` for `Digit` is u8
+            ("DF9D8de0aDBCcC5effc99f39b8Cfe2Db8F4294dDf77B849ce548546d2fc4D3fEb6FdCe40ebBe2B8eAFcC01",
+            "01eca5aE9Cc7"),
+        ];
+        for (a_hex, b_hex) in data {
+            let a = BigInt::try_from(a_hex).unwrap();
+            let b = BigInt::try_from(b_hex).unwrap();
+
+            let quotient = &a / &b;
+            let remainder = &a % &b;
+            let mul_add_result = &quotient * &b + &remainder;
+            assert_eq!(mul_add_result, a)
+        }
+    }
 
     #[test]
     fn test_devrem_with_muladd() {
-        const TEST_NUMBER: u64 = 1000;
+        #[cfg(not(u8_digit))]
+        const TEST_NUMBER: u64 = 10000;
+        #[cfg(u8_digit)]
+        const TEST_NUMBER: u64 = 6000;
+
+        #[cfg(not(u8_digit))]
+        const GEN_SIZE: usize = 1000;
+        #[cfg(u8_digit)]
+        const GEN_SIZE: usize = 200;
 
         fn prop(dividend_hex: BigIntHexString, divisor_hex: BigIntHexString) -> bool {
             let dividend = BigInt::from_hex(&dividend_hex.0).unwrap();
             let divisor = BigInt::from_hex(&divisor_hex.0).unwrap();
+            if divisor == BigInt::from(0) {
+                return true; // just ignore
+            }
+
             let quotient = &dividend / &divisor;
             let remainder = &dividend % &divisor;
 
@@ -497,6 +568,7 @@ mod tests {
         }
 
         QuickCheck::new()
+            .gen(Gen::new(GEN_SIZE))
             .tests(TEST_NUMBER)
             .quickcheck(prop as fn(BigIntHexString, BigIntHexString) -> bool)
     }

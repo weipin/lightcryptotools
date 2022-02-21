@@ -7,6 +7,8 @@
 mod add;
 mod bigint_core;
 mod bigint_display;
+mod bigint_from;
+mod bigint_into;
 mod bigint_new;
 mod bigint_slice;
 mod bigint_vec;

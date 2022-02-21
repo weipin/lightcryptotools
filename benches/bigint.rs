@@ -8,31 +8,51 @@
 
 extern crate test;
 
-use lightcryptotools::bigint::{BigInt, Digit, Sign};
-use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use lightcryptotools::bigint::BigInt;
+use quickcheck::Gen;
+use std::str::from_utf8;
 use test::Bencher;
 
-#[bench]
-fn div_rem_bench(bench: &mut Bencher) {
-    let mut rng = StdRng::from_entropy();
-    let mut a = vec![0 as Digit; 32];
-    let mut b = vec![0 as Digit; 32];
+fn random_hex(n: usize) -> String {
+    const HEX_CHARS_BYTES: &[u8] = "0123456789abcdefABCDEF".as_bytes();
 
-    for digit in a.iter_mut() {
-        *digit = rng.gen_range(1..=Digit::MAX)
+    let mut gen = Gen::new(0);
+    let mut chars = vec![0_u8; n];
+    for char in chars.iter_mut() {
+        *char = *gen.choose(HEX_CHARS_BYTES).unwrap();
     }
-    for digit in b.iter_mut() {
-        *digit = rng.gen_range(1..=Digit::MAX)
-    }
-    let a_len = a.len();
-    let b_len = b.len();
 
-    let a = BigInt::new(a, a_len, Sign::Positive);
-    let b = BigInt::new(b, b_len, Sign::Positive);
+    String::from(from_utf8(&chars).unwrap())
+}
+
+fn div_rem_bench_bits(bench: &mut Bencher, bits: usize) {
+    // 4 bits -> 1 hex digit
+    let hex_len = bits >> 2;
+    let a = BigInt::try_from(random_hex(hex_len).as_str()).unwrap();
+    let b = BigInt::try_from(random_hex(hex_len).as_str()).unwrap();
     let c = &a * &b;
 
     bench.iter(|| {
         let _ = &c / &b;
     })
+}
+
+#[bench]
+fn div_rem_bench_256(b: &mut Bencher) {
+    div_rem_bench_bits(b, 256);
+}
+
+#[bench]
+fn div_rem_bench_512(b: &mut Bencher) {
+    div_rem_bench_bits(b, 512);
+}
+
+#[bench]
+fn div_rem_bench_1024(b: &mut Bencher) {
+    div_rem_bench_bits(b, 1024);
+}
+
+#[bench]
+fn div_rem_bench_2048(b: &mut Bencher) {
+    div_rem_bench_bits(b, 2048);
 }

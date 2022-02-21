@@ -34,10 +34,26 @@ pub(crate) fn bytes_to_digits_be(bytes: &[u8]) -> Vec<Digit> {
     digits
 }
 
+/// Creates a digit vector from its byte array representation `bytes`.
+/// The representation of each digit is in little-endian order.
+pub(crate) fn bytes_to_digits_le(bytes: &[u8]) -> Vec<Digit> {
+    assert_eq!(bytes.len() % DIGIT_BYTES as usize, 0, "Not digit aligned");
+
+    let mut digits = Vec::with_capacity(bytes.len() / DIGIT_BYTES as usize);
+    for chunk in bytes.chunks_exact(DIGIT_BYTES as usize) {
+        let digit = Digit::from_le_bytes(chunk.try_into().unwrap());
+        digits.push(digit);
+    }
+
+    digits
+}
+
 #[cfg(test)]
 mod tests {
+    #[cfg(not(u8_digit))]
     use super::*;
 
+    #[cfg(not(u8_digit))]
     #[test]
     #[should_panic(expected = "Not digit aligned")]
     fn test_be_bytes_to_digits_not_digit_aligned() {

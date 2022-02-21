@@ -14,8 +14,15 @@
 //! a larger one must exist and be used as "double-digit".
 //! Arithmetic operations will often be performed on the double-digit type.
 
+#[cfg(not(u8_digit))]
 pub type Digit = u64;
+#[cfg(u8_digit)]
+pub type Digit = u8;
+
+#[cfg(not(u8_digit))]
 pub(crate) type DoubleDigit = u128;
+#[cfg(u8_digit)]
+pub(crate) type DoubleDigit = u16;
 
 pub(crate) const DIGIT_BITS: u32 = Digit::BITS;
 pub const DIGIT_BYTES: u32 = DIGIT_BITS / 8;
