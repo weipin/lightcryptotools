@@ -39,10 +39,12 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
+    env:
+      RUSTFLAGS: "--cfg u8_digit"
     steps:
       - uses: actions/checkout@v2
       - name: Build
-        run: RUSTFLAGS="--cfg u8_digit" cargo build --verbose
+        run: cargo build --verbose
       - name: Run tests
-        run: RUSTFLAGS="--cfg u8_digit" cargo test --verbose
+        run: cargo test --verbose
 
