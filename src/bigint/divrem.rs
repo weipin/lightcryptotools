@@ -13,7 +13,7 @@ use super::cmp::cmp_digits;
 use super::digit::{Digit, DoubleDigit, DIGIT_BITS};
 use super::len::len_digits;
 use super::zero::is_zero_digits;
-use crate::bigint::helper_methods::{borrowing_sub, carrying_add};
+use super::helper_methods::{borrowing_sub, carrying_add};
 use std::cmp::Ordering;
 use std::ops::{Div, Rem};
 
@@ -456,12 +456,16 @@ fn sub_mul_digits(a: &mut [Digit], b: &BigUintSlice, c: Digit) {
         mul_carry = t >> DIGIT_BITS;
 
         let a_digit = a_mut.next().unwrap();
-        (*a_digit, sub_borrow) = borrowing_sub(*a_digit, t as Digit, sub_borrow);
+        let result = borrowing_sub(*a_digit, t as Digit, sub_borrow);
+        *a_digit = result.0;
+        sub_borrow = result.1;
     }
 
     // the second most significant digit of `a`.
     let a_digit = a_mut.next().unwrap();
-    (*a_digit, sub_borrow) = borrowing_sub(*a_digit, mul_carry as Digit, sub_borrow);
+    let result = borrowing_sub(*a_digit, mul_carry as Digit, sub_borrow);
+    *a_digit = result.0;
+    sub_borrow = result.1;
 
     // the most significant digit of `a`.
     let a_digit = a_mut.next().unwrap();
@@ -478,12 +482,16 @@ fn assign_add_digits(a: &mut [Digit], b: &BigUintSlice) {
     let mut a_mut = a.iter_mut();
     for b_digit in b {
         let a_digit = a_mut.next().unwrap();
-        (*a_digit, carry) = carrying_add(*a_digit, *b_digit, carry);
+        let result = carrying_add(*a_digit, *b_digit, carry);
+        *a_digit = result.0;
+        carry = result.1;
     }
 
     // the second most significant digit of `a`.
     let a_digit = a_mut.next().unwrap();
-    (*a_digit, carry) = carrying_add(*a_digit, 0, carry);
+    let result = carrying_add(*a_digit, 0, carry);
+    *a_digit = result.0;
+    carry = result.1;
 
     // the most significant digit of `a`.
     let a_digit = a_mut.next().unwrap();
