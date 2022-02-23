@@ -18,8 +18,8 @@ fn random_hex(n: usize) -> String {
 
     let mut gen = Gen::new(0);
     let mut chars = vec![0_u8; n];
-    for char in chars.iter_mut() {
-        *char = *gen.choose(HEX_CHARS_BYTES).unwrap();
+    for c in chars.iter_mut() {
+        *c = *gen.choose(HEX_CHARS_BYTES).unwrap();
     }
 
     String::from(from_utf8(&chars).unwrap())
@@ -28,12 +28,13 @@ fn random_hex(n: usize) -> String {
 fn div_rem_bench_bits(bench: &mut Bencher, bits: usize) {
     // 4 bits -> 1 hex digit
     let hex_len = bits >> 2;
-    let a = BigInt::try_from(random_hex(hex_len).as_str()).unwrap();
+
+    // len * 2 for dividend
+    let a = BigInt::try_from(random_hex(hex_len << 1).as_str()).unwrap();
     let b = BigInt::try_from(random_hex(hex_len).as_str()).unwrap();
-    let c = &a * &b;
 
     bench.iter(|| {
-        let _ = &c / &b;
+        let _ = &a / &b;
     })
 }
 

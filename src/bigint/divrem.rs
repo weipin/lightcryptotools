@@ -6,16 +6,14 @@
 
 //! Implements division operations.
 
-use super::add::add_digits;
 use super::bigint_core::{BigInt, Sign};
 use super::bigint_slice::{is_valid_biguint_slice, BigUintSlice};
 use super::bigint_vec::{digitvec_with_len, DigitVec};
 use super::cmp::cmp_digits;
 use super::digit::{Digit, DoubleDigit, DIGIT_BITS};
 use super::len::len_digits;
-use super::mul::{digitvec_multiplying_output, mul_digits};
-use super::sub::sub_digits;
 use super::zero::is_zero_digits;
+use crate::bigint::helper_methods::{borrowing_sub, carrying_add};
 use std::cmp::Ordering;
 use std::ops::{Div, Rem};
 
@@ -188,13 +186,6 @@ fn div_rem_digits(
     // Reverses the iterator for the digits are stored in little-endian order.
     let mut quotient_iter = quotient[..quotient_num_len].iter_mut().rev();
 
-    // Output storage for `q_hat * divisor`.
-    let mut step_mul_result = digitvec_multiplying_output(1, divisor_digits_len);
-
-    // Output storage for `dividend_window - step_mul_result`.
-    // The length is `dividend_window_len`, for `dividend_window > step_mul_result`.
-    let mut step_sub_result = digitvec_with_len(dividend_window_len);
-
     // Performs the steps.
     // Shifts the window for each step, starting at the end of the `dividend_digits_storage`.
     rwindows_mut_each(
@@ -271,7 +262,7 @@ fn div_rem_digits(
 
                 // For `dividend0_normalized == divisor0_normalized`,
                 // it's possible that `r_hat > b` (rare).
-                // If this case happens, ignores the `q_hat > q` check.
+                // If this case happens, ignores the `q_hat > q` test.
                 //
                 // 1. The test will always fail, for `(r_hat * b + dividend2_normalized) > b^2`.
                 // 2. The calculation above will overflow the `DoubleDigit`.
@@ -344,29 +335,17 @@ fn div_rem_digits(
             // for the rare case that ``q_hat - 1 = q`` at this point.
             *dividend_window.last_mut().unwrap() = 1;
 
-            // Calculates `dividend_window - q_hat * divisor`,
-            // and stores the output back to the window.
-            let mul_len = mul_digits(&[q_hat], divisor, &mut step_mul_result);
-            let sub_len = sub_digits(
-                &*dividend_window,
-                &step_mul_result[..mul_len],
-                &mut step_sub_result,
-            );
+            // `dividend_window -= divisor * q_hat`
+            sub_mul_digits(&mut *dividend_window, divisor, q_hat);
 
-            if *step_sub_result.last().unwrap() == 0 {
+            if *dividend_window.last_mut().unwrap() == 0 {
                 // `q_hat - 1 = q`, for the borrowing is triggered.
                 q_hat -= 1;
-                // Adds back `1 * divisor`,
-                // stores the output to the window,
-                // and removes the temporary borrow padding.
-                add_digits(&step_sub_result[..sub_len], divisor, dividend_window);
-                *dividend_window.last_mut().unwrap() = 0;
-            } else {
-                // Removes the temporary borrow padding,
-                // and stores the output to the window.
-                *step_sub_result.last_mut().unwrap() = 0;
-                dividend_window.copy_from_slice(&step_sub_result);
+                // `dividend_window -= divisor`,
+                assign_add_digits(dividend_window, divisor);
             }
+            // Removes the borrow padding.
+            *dividend_window.last_mut().unwrap() = 0;
 
             // Accumulates `quotient`.
             *quotient_iter.next().unwrap() = q_hat;
@@ -462,6 +441,55 @@ fn rwindows_mut_each<T>(slice: &mut [T], window_size: usize, mut f: impl FnMut(&
     }
 }
 
+/// a -= b * c
+#[inline]
+fn sub_mul_digits(a: &mut [Digit], b: &BigUintSlice, c: Digit) {
+    debug_assert!(a.len() == b.len() + 2);
+
+    let c = c as DoubleDigit;
+    let mut mul_carry: DoubleDigit = 0;
+    let mut sub_borrow = false;
+
+    let mut a_mut = a.iter_mut();
+    for b_digit in b {
+        let t = (*b_digit as DoubleDigit) * c + mul_carry;
+        mul_carry = t >> DIGIT_BITS;
+
+        let a_digit = a_mut.next().unwrap();
+        (*a_digit, sub_borrow) = borrowing_sub(*a_digit, t as Digit, sub_borrow);
+    }
+
+    // the second most significant digit of `a`.
+    let a_digit = a_mut.next().unwrap();
+    (*a_digit, sub_borrow) = borrowing_sub(*a_digit, mul_carry as Digit, sub_borrow);
+
+    // the most significant digit of `a`.
+    let a_digit = a_mut.next().unwrap();
+    *a_digit = borrowing_sub(*a_digit, 0, sub_borrow).0;
+}
+
+/// a += b
+#[inline]
+fn assign_add_digits(a: &mut [Digit], b: &BigUintSlice) {
+    debug_assert!(a.len() == b.len() + 2);
+
+    let mut carry = false;
+
+    let mut a_mut = a.iter_mut();
+    for b_digit in b {
+        let a_digit = a_mut.next().unwrap();
+        (*a_digit, carry) = carrying_add(*a_digit, *b_digit, carry);
+    }
+
+    // the second most significant digit of `a`.
+    let a_digit = a_mut.next().unwrap();
+    (*a_digit, carry) = carrying_add(*a_digit, 0, carry);
+
+    // the most significant digit of `a`.
+    let a_digit = a_mut.next().unwrap();
+    *a_digit = carrying_add(*a_digit, 0, carry).0;
+}
+
 /// Returns the length of the largest possible quotient of an division operation.
 ///
 /// `dividend_len` is the length of the dividend.
@@ -520,10 +548,10 @@ mod tests {
             // dividend equals divisor
             ("4e432fBe", "4e432fBe"),
 
-            // dividend less than_divisor
+            // dividend less than divisor
             ("D0F8C7ae", "4e432fBecBAF6B2EfE401dC31caC3C74b46cB1ACc826"),
 
-            // one place divisor
+            // one-digit divisor
             ("4e432fBecBAF6B2EfE401dC31caC3C74b46cB1ACc826", "C7"),
 
             // ``q_hat - 3 == q`` for `Digit` is u8
