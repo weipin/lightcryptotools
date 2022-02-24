@@ -597,6 +597,9 @@ mod tests {
         fn prop(dividend_hex: BigIntHexString, divisor_hex: BigIntHexString) -> bool {
             let dividend = BigInt::from_hex(&dividend_hex.0).unwrap();
             let divisor = BigInt::from_hex(&divisor_hex.0).unwrap();
+            if divisor == BigInt::from(0) {
+                return true; // just ignore
+            }
 
             let quotient = &dividend / &divisor;
             let remainder = &dividend % &divisor;
