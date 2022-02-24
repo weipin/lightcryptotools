@@ -16,15 +16,14 @@ use super::digit::Digit;
 pub struct BigInt {
     pub(crate) digits_storage: Vec<Digit>,
     pub(crate) digits_len: usize, // The length of digits stored in `digits_storage`
-    // TODO: remove allow
-    #[allow(dead_code)]
     pub(crate) sign: Sign,
 }
 
 /// Denotes the sign of a big integer.
 ///
 /// A big integer, including 0, can be denoted as either positive or negative.
-#[derive(Clone, Debug)]
-pub enum Sign {
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Sign {
     Positive,
+    Negative,
 }

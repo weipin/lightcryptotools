@@ -6,7 +6,7 @@
 
 //! Implements comparing operations.
 
-use super::bigint_core::BigInt;
+use super::bigint_core::{BigInt, Sign};
 use super::bigint_slice::{is_valid_biguint_slice, BigUintSlice};
 use std::cmp::Ordering;
 
@@ -34,16 +34,50 @@ pub(crate) fn cmp_digits(a: &BigUintSlice, b: &BigUintSlice) -> Ordering {
 
 impl PartialEq<Self> for BigInt {
     fn eq(&self, other: &Self) -> bool {
-        eq_digits(self.as_digits(), other.as_digits())
+        // Rules out the exception,
+        // for we internally allow `BigInt::from(0)` to be either positive or negative.
+        if self.is_zero() && other.is_zero() {
+            return true;
+        }
+
+        if self.sign == other.sign {
+            eq_digits(self.as_digits(), other.as_digits())
+        } else {
+            false
+        }
     }
 }
 
 impl Eq for BigInt {}
 
+impl PartialOrd<Self> for BigInt {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for BigInt {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Rules out the exception,
+        // for we internally allow `BigInt::from(0)` to be either positive or negative.
+        if self.is_zero() && other.is_zero() {
+            return Ordering::Equal;
+        }
+
+        match (&self.sign, &other.sign) {
+            (Sign::Positive, Sign::Positive) => cmp_digits(self.as_digits(), other.as_digits()),
+            (Sign::Positive, Sign::Negative) => Ordering::Greater,
+            (Sign::Negative, Sign::Positive) => Ordering::Less,
+            (Sign::Negative, Sign::Negative) => cmp_digits(other.as_digits(), self.as_digits()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bigint::bigint_vec::digits_be;
+    use crate::bigint::bigint_core::Sign;
+    use crate::bigint::bigint_vec::{digits_be, digitvec_with_len};
 
     #[test]
     fn test_eq() {
@@ -87,6 +121,36 @@ mod tests {
         let a = digits_be!(0, 3, 2, 1);
         let b = digits_be!(3, 2, 1);
         assert_eq!(&a, &b);
+    }
+
+    #[test]
+    fn test_partial_eq_and_ord() {
+        // (a, b, a == b, a >= b)
+        let data = [
+            (0, 0, true, true),
+            (-1, 1, false, false),
+            (1, -1, false, true),
+            (1, 1, true, true),
+            (-1, -1, true, true),
+            (-1, 2, false, false),
+            (1, 2, false, false),
+            (2, 1, false, true),
+        ];
+        for (a, b, eq_result, ord_result) in data {
+            let a = BigInt::from(a);
+            let b = BigInt::from(b);
+            assert_eq!(a == b, eq_result);
+            assert_eq!(a >= b, ord_result);
+        }
+    }
+
+    #[test]
+    fn test_zero_partial_eq_and_ord() {
+        let a = BigInt::new(digitvec_with_len(1), 1, Sign::Positive);
+        let b = BigInt::new(digitvec_with_len(1), 1, Sign::Negative);
+        assert_eq!(a == b, true);
+        assert_eq!(a > b, false);
+        assert_eq!(a < b, false);
     }
 
     #[test]

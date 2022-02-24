@@ -6,6 +6,7 @@
 
 //! Implements subtraction operations.
 
+use super::add::{add_digits, digitvec_adding_output};
 use super::bigint_core::{BigInt, Sign};
 use super::bigint_slice::{is_valid_biguint_slice, BigUintSlice};
 use super::bigint_vec::{digitvec_with_len, DigitVec};
@@ -87,10 +88,30 @@ impl<'a, 'b> Sub<&'b BigInt> for &'a BigInt {
     fn sub(self, rhs: &BigInt) -> Self::Output {
         let a = self.as_digits();
         let b = rhs.as_digits();
-        let mut output = digitvec_subtracting_output(a.len(), b.len());
-        let output_len = sub_digits(a, b, &mut output);
 
-        BigInt::new(output, output_len, Sign::Positive)
+        if self.sign != rhs.sign {
+            let mut output = digitvec_adding_output(a.len(), b.len());
+            let output_len = add_digits(a, b, &mut output);
+            BigInt::new(output, output_len, self.sign.clone())
+        } else {
+            match cmp_digits(a, b) {
+                Ordering::Less => {
+                    let mut output = digitvec_subtracting_output(b.len(), a.len());
+                    let output_len = sub_digits(b, a, &mut output);
+                    let sign = match &self.sign {
+                        Sign::Positive => Sign::Negative,
+                        Sign::Negative => Sign::Positive,
+                    };
+                    BigInt::new(output, output_len, sign)
+                }
+                Ordering::Equal => BigInt::from(0),
+                Ordering::Greater => {
+                    let mut output = digitvec_subtracting_output(a.len(), b.len());
+                    let output_len = sub_digits(a, b, &mut output);
+                    BigInt::new(output, output_len, self.sign.clone())
+                }
+            }
+        }
     }
 }
 
@@ -122,7 +143,7 @@ fn subtracting_output_max_len(a_len: usize, b_len: usize) -> usize {
 ///
 /// `a_len` and `b_len` are the length of the operands.
 #[inline]
-fn digitvec_subtracting_output(a_len: usize, b_len: usize) -> DigitVec {
+pub(crate) fn digitvec_subtracting_output(a_len: usize, b_len: usize) -> DigitVec {
     let max_len = subtracting_output_max_len(a_len, b_len);
     digitvec_with_len(max_len)
 }
@@ -184,5 +205,30 @@ mod tests {
         let b = digits_be!(1, 2, 4);
         let mut output = digitvec_subtracting_output(a.len(), b.len());
         sub_digits(&a, &b, &mut output);
+    }
+
+    #[test]
+    fn test_signed_sub() {
+        let data = [
+            (0, 0),
+            (2, 1),
+            (1, 2),
+            (1, 1),
+            (-2, -1),
+            (-1, -2),
+            (-1, -1),
+            (2, -1),
+            (-2, 1),
+            (1, -2),
+            (-1, 2),
+            (1, -1),
+            (-1, 1),
+        ];
+        for (a, b) in data {
+            let c = BigInt::from(a - b);
+            let a = BigInt::from(a);
+            let b = BigInt::from(b);
+            assert_eq!(a - b, c)
+        }
     }
 }

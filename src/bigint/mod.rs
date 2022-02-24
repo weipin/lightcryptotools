@@ -14,7 +14,7 @@ mod bigint_slice;
 mod bigint_vec;
 mod bytes;
 mod cmp;
-mod digit;
+pub(crate) mod digit;
 mod divrem;
 mod helper_methods;
 mod len;
@@ -22,5 +22,4 @@ mod mul;
 mod sub;
 mod zero;
 
-pub use bigint_core::{BigInt, Sign};
-pub use digit::{Digit, DIGIT_BYTES};
+pub use bigint_core::BigInt;

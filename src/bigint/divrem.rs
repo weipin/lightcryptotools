@@ -11,9 +11,9 @@ use super::bigint_slice::{is_valid_biguint_slice, BigUintSlice};
 use super::bigint_vec::{digitvec_with_len, DigitVec};
 use super::cmp::cmp_digits;
 use super::digit::{Digit, DoubleDigit, DIGIT_BITS};
+use super::helper_methods::{borrowing_sub, carrying_add};
 use super::len::len_digits;
 use super::zero::is_zero_digits;
-use super::helper_methods::{borrowing_sub, carrying_add};
 use std::cmp::Ordering;
 use std::ops::{Div, Rem};
 
@@ -368,7 +368,12 @@ impl<'a, 'b> Div<&'b BigInt> for &'a BigInt {
         let mut remainder = digitvec_div_rem_remainder(b.len());
         let (quotient_len, _) = div_rem_digits(a, b, &mut quotient, &mut remainder);
 
-        BigInt::new(quotient, quotient_len, Sign::Positive)
+        let sign = if self.sign == rhs.sign {
+            Sign::Positive
+        } else {
+            Sign::Negative
+        };
+        BigInt::new(quotient, quotient_len, sign)
     }
 }
 
@@ -398,7 +403,7 @@ impl<'a, 'b> Rem<&'b BigInt> for &'a BigInt {
         let mut remainder = digitvec_div_rem_remainder(b.len());
         let (_, remainder_len) = div_rem_digits(a, b, &mut quotient, &mut remainder);
 
-        BigInt::new(remainder, remainder_len, Sign::Positive)
+        BigInt::new(remainder, remainder_len, self.sign.clone())
     }
 }
 
@@ -585,16 +590,13 @@ mod tests {
         const TEST_NUMBER: u64 = 6000;
 
         #[cfg(not(u8_digit))]
-        const GEN_SIZE: usize = 1000;
+        const GEN_SIZE: usize = 500;
         #[cfg(u8_digit)]
         const GEN_SIZE: usize = 200;
 
         fn prop(dividend_hex: BigIntHexString, divisor_hex: BigIntHexString) -> bool {
             let dividend = BigInt::from_hex(&dividend_hex.0).unwrap();
             let divisor = BigInt::from_hex(&divisor_hex.0).unwrap();
-            if divisor == BigInt::from(0) {
-                return true; // just ignore
-            }
 
             let quotient = &dividend / &divisor;
             let remainder = &dividend % &divisor;
@@ -607,5 +609,31 @@ mod tests {
             .gen(Gen::new(GEN_SIZE))
             .tests(TEST_NUMBER)
             .quickcheck(prop as fn(BigIntHexString, BigIntHexString) -> bool)
+    }
+
+    #[test]
+    fn test_signed_div_rem() {
+        let data = [
+            (6, 1),
+            (1, 2),
+            (1, 1),
+            (-7, -2),
+            (-1, -2),
+            (-1, -1),
+            (7, -2),
+            (-7, 2),
+            (2, -7),
+            (-2, 7),
+            (1, -1),
+            (-1, 1),
+        ];
+        for (a, b) in data {
+            let c = BigInt::from(a / b);
+            let d = BigInt::from(a % b);
+            let a = BigInt::from(a);
+            let b = BigInt::from(b);
+            assert_eq!(&a / &b, c);
+            assert_eq!(&a % &b, d);
+        }
     }
 }

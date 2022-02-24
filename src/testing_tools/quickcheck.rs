@@ -1,4 +1,3 @@
-use crate::bigint::DIGIT_BYTES;
 use quickcheck::{Arbitrary, Gen};
 
 #[derive(Debug)]
@@ -52,18 +51,22 @@ impl Clone for BigIntHexString {
     }
 }
 
+const SIGN_CHARS_BYTES: &[u8] = "+-".as_bytes();
 impl Arbitrary for BigIntHexString {
     fn arbitrary(g: &mut Gen) -> Self {
         use std::str::from_utf8;
 
         let mut v = Vec::<HexChar>::arbitrary(g);
-        let digit_char_len = DIGIT_BYTES as usize * 2;
-        let padding_len = digit_char_len - v.len() % digit_char_len;
-        for _ in 0..padding_len {
+        if v.len() == 0 {
+            v.push(HexChar::arbitrary(g));
+            v.push(HexChar::arbitrary(g));
+        } else if v.len() & 1 != 0 {
             v.push(HexChar::arbitrary(g));
         }
 
-        let v_char: Vec<u8> = v.iter().map(|x| x.0).collect();
+        let mut v_char: Vec<u8> = v.iter().map(|x| x.0).collect();
+        let sign = *g.choose(SIGN_CHARS_BYTES).unwrap();
+        v_char.insert(0, sign);
         Self(String::from(from_utf8(&v_char).unwrap()))
     }
 }

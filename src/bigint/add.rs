@@ -6,13 +6,15 @@
 
 //! Implements addition operations.
 
-use super::bigint_core::{BigInt, Sign};
+use super::bigint_core::BigInt;
 use super::bigint_slice::{is_valid_biguint_slice, BigUintSlice};
 use super::bigint_vec::{digitvec_with_len, DigitVec};
 use super::cmp::cmp_digits;
 use super::digit::Digit;
 use super::helper_methods::carrying_add;
+use super::sub::{digitvec_subtracting_output, sub_digits};
 use std::cmp;
+use std::cmp::Ordering;
 use std::ops::Add;
 
 /// Adds `a` with `b`, and fills the output to `result`,
@@ -81,10 +83,26 @@ impl<'a, 'b> Add<&'b BigInt> for &'a BigInt {
     fn add(self, rhs: &BigInt) -> Self::Output {
         let a = self.as_digits();
         let b = rhs.as_digits();
-        let mut output = digitvec_adding_output(a.len(), b.len());
-        let output_len = add_digits(a, b, &mut output);
 
-        BigInt::new(output, output_len, Sign::Positive)
+        if self.sign == rhs.sign {
+            let mut output = digitvec_adding_output(a.len(), b.len());
+            let output_len = add_digits(a, b, &mut output);
+            BigInt::new(output, output_len, self.sign.clone())
+        } else {
+            match cmp_digits(a, b) {
+                Ordering::Less => {
+                    let mut output = digitvec_subtracting_output(b.len(), a.len());
+                    let output_len = sub_digits(b, a, &mut output);
+                    BigInt::new(output, output_len, rhs.sign.clone())
+                }
+                Ordering::Equal => BigInt::from(0),
+                Ordering::Greater => {
+                    let mut output = digitvec_subtracting_output(a.len(), b.len());
+                    let output_len = sub_digits(a, b, &mut output);
+                    BigInt::new(output, output_len, self.sign.clone())
+                }
+            }
+        }
     }
 }
 
@@ -116,7 +134,7 @@ fn adding_output_max_len(a_len: usize, b_len: usize) -> usize {
 ///
 /// `a_len` and `b_len` are the length of the operands.
 #[inline]
-fn digitvec_adding_output(a_len: usize, b_len: usize) -> DigitVec {
+pub(crate) fn digitvec_adding_output(a_len: usize, b_len: usize) -> DigitVec {
     let max_len = adding_output_max_len(a_len, b_len);
     digitvec_with_len(max_len)
 }
@@ -175,6 +193,31 @@ mod tests {
             assert_eq!(result.len(), output_len);
             assert_eq!(result, output[..output_len]);
             assert_eq!(vec!(0; output.len() - output_len), output[output_len..]);
+        }
+    }
+
+    #[test]
+    fn test_signed_add() {
+        let data = [
+            (0, 0),
+            (2, 1),
+            (1, 2),
+            (1, 1),
+            (-2, -1),
+            (-1, -2),
+            (-1, -1),
+            (2, -1),
+            (-2, 1),
+            (1, -2),
+            (-1, 2),
+            (1, -1),
+            (-1, 1),
+        ];
+        for (a, b) in data {
+            let c = BigInt::from(a + b);
+            let a = BigInt::from(a);
+            let b = BigInt::from(b);
+            assert_eq!(a + b, c)
         }
     }
 }

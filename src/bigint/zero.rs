@@ -5,12 +5,19 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::bigint_slice::{is_valid_biguint_slice, BigUintSlice};
+use crate::bigint::BigInt;
 
 /// Returns true if `digits` represents a zero.
 pub fn is_zero_digits(digits: &BigUintSlice) -> bool {
     debug_assert!(is_valid_biguint_slice(digits));
 
     digits.len() == 1 && *digits.first().unwrap() == 0
+}
+
+impl BigInt {
+    pub(crate) fn is_zero(&self) -> bool {
+        is_zero_digits(self.as_digits())
+    }
 }
 
 #[cfg(test)]

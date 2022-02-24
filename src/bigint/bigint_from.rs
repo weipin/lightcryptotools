@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::bigint_core::BigInt;
+use super::bigint_core::{BigInt, Sign};
 use crate::crypto::CodecsError;
 
 impl TryFrom<&str> for BigInt {
@@ -15,10 +15,49 @@ impl TryFrom<&str> for BigInt {
     }
 }
 
-impl From<u128> for BigInt {
-    fn from(n: u128) -> Self {
-        BigInt::from_u128(n)
-    }
+macro_rules! impl_bigint_from_unsigned_int {
+    ($T:ty) => {
+        impl From<$T> for BigInt {
+            fn from(n: $T) -> Self {
+                BigInt::from_u128(n as u128, Sign::Positive)
+            }
+        }
+    };
+}
+
+impl_bigint_from_unsigned_int!(u8);
+impl_bigint_from_unsigned_int!(u16);
+impl_bigint_from_unsigned_int!(u32);
+impl_bigint_from_unsigned_int!(u64);
+impl_bigint_from_unsigned_int!(u128);
+impl_bigint_from_unsigned_int!(usize);
+
+macro_rules! impl_bigint_from_signed_int {
+    ($T:ty) => {
+        impl From<$T> for BigInt {
+            fn from(n: $T) -> Self {
+                BigInt::from_i128(n as i128)
+            }
+        }
+    };
+}
+
+impl_bigint_from_signed_int!(i8);
+impl_bigint_from_signed_int!(i16);
+impl_bigint_from_signed_int!(i32);
+impl_bigint_from_signed_int!(i64);
+impl_bigint_from_signed_int!(i128);
+impl_bigint_from_signed_int!(isize);
+
+#[cfg(test)]
+macro_rules! test_from_int {
+    ($T:ty, $fn_name:ident) => {
+        #[quickcheck]
+        fn $fn_name(n: $T) -> bool {
+            let a = BigInt::from(n);
+            n == <$T>::from_str_radix(&a.to_hex(), 16).unwrap()
+        }
+    };
 }
 
 #[cfg(test)]
@@ -29,26 +68,38 @@ mod tests {
     #[test]
     fn test_from_hex() {
         let data = [
-            ("00", "01", "01"),
-            ("79be66", "483ADA7726A3C465", "483ada77271d82cb"),
+            ("", "0"),
+            ("00", "0"),
+            ("0", "0"),
+            ("79be66", "79be66"),
             (
                 "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-                "483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8",
-                "c1f940f620808011b3455e91dc9813afffb3b123d4537cf2f63a51eb1208ec50",
+                "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+            ),
+            ("-00", "0"),
+            ("-0", "0"),
+            ("-79be66", "-79be66"),
+            (
+                "-79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+                "-79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
             ),
         ];
-        for (a_hex, b_hex, c_hex) in data {
+        for (a_hex, output) in data {
             let a = BigInt::try_from(a_hex).unwrap();
-            let b = BigInt::try_from(b_hex).unwrap();
-            let c = BigInt::try_from(c_hex).unwrap();
 
-            assert_eq!(a + b, c)
+            assert_eq!(a.to_hex(), output);
         }
     }
 
-    #[quickcheck]
-    fn test_from_u128(n: u128) -> bool {
-        let a = BigInt::from(n);
-        n == u128::from_str_radix(&a.to_hex(), 16).unwrap()
-    }
+    test_from_int!(u128, test_from_u128);
+    test_from_int!(u64, test_from_u64);
+    test_from_int!(u32, test_from_u32);
+    test_from_int!(u16, test_from_u16);
+    test_from_int!(u8, test_from_u8);
+
+    test_from_int!(i128, test_from_i128);
+    test_from_int!(i64, test_from_i64);
+    test_from_int!(i32, test_from_i32);
+    test_from_int!(i16, test_from_i16);
+    test_from_int!(i8, test_from_i8);
 }

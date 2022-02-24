@@ -98,7 +98,12 @@ impl<'a, 'b> Mul<&'b BigInt> for &'a BigInt {
         let mut output = digitvec_multiplying_output(a.len(), b.len());
         let output_len = mul_digits(a, b, &mut output);
 
-        BigInt::new(output, output_len, Sign::Positive)
+        let sign = if self.sign == rhs.sign {
+            Sign::Positive
+        } else {
+            Sign::Negative
+        };
+        BigInt::new(output, output_len, sign)
     }
 }
 
@@ -193,6 +198,31 @@ mod tests {
             assert_eq!(result.len(), output_len);
             assert_eq!(result, output[..output_len]);
             assert_eq!(vec!(0; output.len() - output_len), output[output_len..]);
+        }
+    }
+
+    #[test]
+    fn test_signed_mul() {
+        let data = [
+            (0, 0),
+            (2, 1),
+            (1, 2),
+            (1, 1),
+            (-2, -1),
+            (-1, -2),
+            (-1, -1),
+            (2, -1),
+            (-2, 1),
+            (1, -2),
+            (-1, 2),
+            (1, -1),
+            (-1, 1),
+        ];
+        for (a, b) in data {
+            let c = BigInt::from(a * b);
+            let a = BigInt::from(a);
+            let b = BigInt::from(b);
+            assert_eq!(a * b, c)
         }
     }
 }
