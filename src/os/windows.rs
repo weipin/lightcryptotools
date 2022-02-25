@@ -49,8 +49,8 @@ pub(crate) fn bcrypt_gen_random(dest: &mut [u8]) -> NtStatus {
     use std::ptr::null_mut;
 
     const BCRYPT_USE_SYSTEM_PREFERRED_RNG: u32 = 0x00000002;
-    // When uses the system-preferred random number generator algorithm (BCRYPT_USE_SYSTEM_PREFERRED_RNG),
-    // the hAlgorithm parameter must be NULL.
+    // The parameter `hAlgorithm` must be NULL,
+    // if the system-preferred random number generator algorithm (`BCRYPT_USE_SYSTEM_PREFERRED_RNG`) is used,
     unsafe {
         bcrypt::BCryptGenRandom(
             null_mut(),

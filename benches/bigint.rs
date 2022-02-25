@@ -14,7 +14,7 @@ use std::str::from_utf8;
 use test::Bencher;
 
 fn random_hex(n: usize) -> String {
-    const HEX_CHARS_BYTES: &[u8] = "0123456789abcdefABCDEF".as_bytes();
+    const HEX_CHARS_BYTES: &[u8] = "0123456789abcdef".as_bytes();
 
     let mut gen = Gen::new(0);
     let mut chars = vec![0_u8; n];

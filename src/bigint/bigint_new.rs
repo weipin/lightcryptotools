@@ -76,17 +76,26 @@ impl BigInt {
 
     /// Creates a `BigInt` from `i128`.
     pub(crate) fn from_i128(i: i128) -> BigInt {
-        if i < 0 {
-            // The absolute value of i128::MIN cannot be represented as an i8.
-            // -(i128::MIN + 1) + 1
-            let n = if i == i128::MIN {
-                -(i + 1) as u128 + 1
+        if i >= 0 {
+            Self::from_u128(i as u128, Sign::Positive)
+
+        } else {
+            // The absolute value of i128::MIN cannot be represented as an i128,
+            // and attempting to calculate it will cause an overflow.
+            let (negated, overflow) = i.overflowing_neg();
+            let n = if overflow {
+                // 1. Signed integers are represented by "two's complement",
+                //     e.g., `i8::MIN` is represented by `0b10000000`.
+                // 2. Rust's [numeric cast][1], `as`,
+                //     is a no-op for casting between two integers of the same size (e.g., i8 -> u8).
+                // 3. Combines 1 and 2, we can negate `i128::MIN` by `i128::MIN as u128`.
+                //
+                // [1]: https://doc.rust-lang.org/1.49.0/reference/expressions/operator-expr.html#semantics
+                i as u128
             } else {
-                -i as u128
+                negated as u128
             };
             Self::from_u128(n, Sign::Negative)
-        } else {
-            Self::from_u128(i as u128, Sign::Positive)
         }
     }
 }

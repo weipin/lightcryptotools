@@ -35,8 +35,8 @@ impl_bigint_from_unsigned_int!(usize);
 macro_rules! impl_bigint_from_signed_int {
     ($T:ty) => {
         impl From<$T> for BigInt {
-            fn from(n: $T) -> Self {
-                BigInt::from_i128(n as i128)
+            fn from(i: $T) -> Self {
+                BigInt::from_i128(i as i128)
             }
         }
     };
