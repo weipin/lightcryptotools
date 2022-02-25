@@ -59,9 +59,8 @@ pub(crate) fn sub_digits(a: &BigUintSlice, b: &BigUintSlice, result: &mut [Digit
     // and its aligned counterpart `greater_digit` from `greater`,
     // subtracts `smaller_digit` from `greater_digit`.
     for (&smaller_digit, &greater_digit) in smaller.iter().zip(greater.iter()) {
-        let result = borrowing_sub(greater_digit, smaller_digit, borrow);
-        *result_iter_mut.next().unwrap() = result.0;
-        borrow = result.1;
+        (*result_iter_mut.next().unwrap(), borrow) =
+            borrowing_sub(greater_digit, smaller_digit, borrow);
     }
 
     // Step 2
@@ -69,9 +68,7 @@ pub(crate) fn sub_digits(a: &BigUintSlice, b: &BigUintSlice, result: &mut [Digit
         // Propagates the resulting borrow from step 1,
         // going upwards through the rest of `greater`.
         for &digit in &greater[smaller_digits_len..] {
-            let result = borrowing_sub(digit, 0, borrow);
-            *result_iter_mut.next().unwrap() = result.0;
-            borrow = result.1;
+            (*result_iter_mut.next().unwrap(), borrow) = borrowing_sub(digit, 0, borrow);
         }
     } else {
         // Copies the rest of `greater` to output.

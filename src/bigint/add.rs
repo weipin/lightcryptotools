@@ -50,9 +50,8 @@ pub(crate) fn add_digits(a: &BigUintSlice, b: &BigUintSlice, result: &mut [Digit
     // and its aligned counterpart `greater_digit` from `greater`,
     // adds `greater_digit` with `smaller_digit`.
     for (&smaller_digit, &greater_digit) in smaller.iter().zip(greater.iter()) {
-        let result = carrying_add(greater_digit, smaller_digit, carry);
-        *result_iter_mut.next().unwrap() = result.0;
-        carry = result.1;
+        (*result_iter_mut.next().unwrap(), carry) =
+            carrying_add(greater_digit, smaller_digit, carry);
     }
 
     // Step 2
@@ -60,9 +59,7 @@ pub(crate) fn add_digits(a: &BigUintSlice, b: &BigUintSlice, result: &mut [Digit
         // Propagates the resulting carry from step 1,
         // going upwards through the rest of `greater`.
         for &digit in &greater[smaller_digits_len..] {
-            let result = carrying_add(digit, 0, carry);
-            *result_iter_mut.next().unwrap() = result.0;
-            carry = result.1;
+            (*result_iter_mut.next().unwrap(), carry) = carrying_add(digit, 0, carry);
         }
         if carry {
             *result_iter_mut.next().unwrap() = 1;
