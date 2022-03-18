@@ -7,7 +7,7 @@
 //! Implements subtraction operations.
 
 use super::add::{add_digits, digitvec_adding_output};
-use super::bigint_core::{BigInt, Sign};
+use super::bigint_core::BigInt;
 use super::bigint_slice::{is_valid_biguint_slice, BigUintSlice};
 use super::bigint_vec::{digitvec_with_len, DigitVec};
 use super::cmp::cmp_digits;
@@ -95,10 +95,7 @@ impl<'a, 'b> Sub<&'b BigInt> for &'a BigInt {
                 Ordering::Less => {
                     let mut output = digitvec_subtracting_output(b.len(), a.len());
                     let output_len = sub_digits(b, a, &mut output);
-                    let sign = match &self.sign {
-                        Sign::Positive => Sign::Negative,
-                        Sign::Negative => Sign::Positive,
-                    };
+                    let sign = -(&self.sign);
                     BigInt::new(output, output_len, sign)
                 }
                 Ordering::Equal => BigInt::from(0),
@@ -117,6 +114,14 @@ impl<'a> Sub<&'a BigInt> for BigInt {
 
     fn sub(self, rhs: &Self) -> Self::Output {
         (&self).sub(rhs)
+    }
+}
+
+impl<'a> Sub<BigInt> for &'a BigInt {
+    type Output = BigInt;
+
+    fn sub(self, rhs: BigInt) -> Self::Output {
+        (self).sub(&rhs)
     }
 }
 

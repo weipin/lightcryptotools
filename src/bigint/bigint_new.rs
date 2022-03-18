@@ -8,8 +8,7 @@
 
 use super::bigint_core::{BigInt, Sign};
 use super::bigint_vec::DigitVec;
-use super::bytes::{bytes_to_digits_be, bytes_to_digits_le};
-use super::digit::DIGIT_BYTES;
+use super::bytes::be_bytes_to_le_digits;
 use crate::bigint::len::len_digits;
 use crate::crypto::{hex_to_bytes, CodecsError};
 
@@ -25,8 +24,29 @@ impl BigInt {
         }
     }
 
+    /// Creates a `BigInt` from bytes in big-endian order.
+    pub(crate) fn from_be_bytes(bytes: &[u8], sign: Sign) -> BigInt {
+        let digits = be_bytes_to_le_digits(bytes);
+        let digits_len = len_digits(&digits);
+
+        Self::new(digits, digits_len, sign)
+    }
+
+    pub(crate) fn from_be_bytes_with_max_bits_len(
+        bytes: &[u8],
+        max_bits_len: usize,
+        sign: Sign,
+    ) -> BigInt {
+        let mut n = BigInt::from_be_bytes(bytes, sign);
+        let n_bit_len = n.bit_len();
+        if n_bit_len > max_bits_len {
+            n = n >> (n_bit_len - max_bits_len);
+        }
+        n
+    }
+
     /// Creates a `BigInt` from hexadecimal representation `hex`.
-    pub(crate) fn from_hex(hex: &str) -> Result<BigInt, CodecsError> {
+    pub fn from_hex(hex: &str) -> Result<BigInt, CodecsError> {
         if hex.is_empty() {
             return Ok(BigInt::from(0));
         }
@@ -43,32 +63,19 @@ impl BigInt {
         }
 
         // Padding for byte alignment (e.g., 1 => 01).
-        let mut bytes = if hex.len() & 1 == 0 {
+        let bytes = if hex.len() & 1 == 0 {
             hex_to_bytes(hex)?
         } else {
             hex_to_bytes(&format!("0{hex}"))?
         };
 
-        // Inserts padding for the digit alignment required by `bytes_to_digits_be`.
-        let n = bytes.len() % DIGIT_BYTES as usize;
-        if n > 0 {
-            let extend_n = DIGIT_BYTES as usize - n;
-            bytes.extend(vec![0; extend_n]);
-            bytes.rotate_right(extend_n); // e.g., 123 => 0123
-        }
-        let mut digits = bytes_to_digits_be(&bytes);
-
-        // Reverses `digits`, for the hex representation is in big-endian order.
-        digits.reverse();
-        let digits_len = len_digits(&digits);
-
-        Ok(Self::new(digits, digits_len, sign))
+        Ok(Self::from_be_bytes(&bytes, sign))
     }
 
     /// Creates a `BigInt` from `u128`.
     pub(crate) fn from_u128(n: u128, sign: Sign) -> BigInt {
-        let bytes = n.to_le_bytes();
-        let digits = bytes_to_digits_le(&bytes);
+        let bytes = n.to_be_bytes();
+        let digits = be_bytes_to_le_digits(&bytes);
         let digits_len = len_digits(&digits);
 
         Self::new(digits, digits_len, sign)
@@ -78,7 +85,6 @@ impl BigInt {
     pub(crate) fn from_i128(i: i128) -> BigInt {
         if i >= 0 {
             Self::from_u128(i as u128, Sign::Positive)
-
         } else {
             // The absolute value of i128::MIN cannot be represented as an i128,
             // and attempting to calculate it will cause an overflow.
@@ -97,5 +103,56 @@ impl BigInt {
             };
             Self::from_u128(n, Sign::Negative)
         }
+    }
+
+    pub(crate) fn zero() -> BigInt {
+        Self::from(0)
+    }
+
+    pub(crate) fn one() -> BigInt {
+        Self::from(1)
+    }
+
+    pub fn from_str_radix(s: &str, radix: u8) -> BigInt {
+        debug_assert!((2..=32).contains(&radix));
+
+        fn char_to_int(c: u8) -> u8 {
+            match c {
+                // 0 - 9
+                48..=57 => c - 48,
+                // 'a' - 'z'
+                97..=122 => c - 87,
+                // 'A' - 'Z'
+                65..=90 => c - 55,
+                _ => panic!("invalid char"),
+            }
+        }
+
+        let radix_bigint = BigInt::from(radix);
+        let mut result = BigInt::zero();
+        for n in s.bytes().map(char_to_int) {
+            if n > radix {
+                panic!("digit greater than the specified radix")
+            }
+
+            result = result * &radix_bigint;
+            result = result + BigInt::from(n);
+        }
+
+        result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testing_tools::quickcheck::HexString;
+    use ::quickcheck_macros::quickcheck;
+
+    #[quickcheck]
+    fn from_str_radix_16_eq_from_hex(hex: HexString) -> bool {
+        let a = BigInt::from_hex(&hex.0).unwrap();
+        let b = BigInt::from_str_radix(&hex.0, 16);
+        a == b
     }
 }

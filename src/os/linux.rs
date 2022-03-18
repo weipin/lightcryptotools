@@ -47,9 +47,11 @@ pub(crate) fn getrandom(dest: &mut [u8]) -> Result<isize, LibcErrno> {
     // References:
     // - [Myths about /dev/urandom][1]
     // - [PEP 524][2]
+    // - Uniting the Linux random-number devices[3]
     //
     // [1]: https://www.2uo.de/myths-about-urandom/
     // [2]: https://www.python.org/dev/peps/pep-0524/
+    // [3]: https://lwn.net/Articles/884875/
     let ret = unsafe { libc::getrandom(dest.as_mut_ptr(), dest.len(), 0) };
     if ret == -1 {
         Err(errno())

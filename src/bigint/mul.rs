@@ -115,6 +115,14 @@ impl<'a> Mul<&'a BigInt> for BigInt {
     }
 }
 
+impl<'a> Mul<BigInt> for &'a BigInt {
+    type Output = BigInt;
+
+    fn mul(self, rhs: BigInt) -> Self::Output {
+        (self).mul(&rhs)
+    }
+}
+
 impl Mul for BigInt {
     type Output = Self;
 

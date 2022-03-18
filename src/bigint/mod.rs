@@ -5,20 +5,24 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 mod add;
-mod bigint_core;
+pub(crate) mod bigint_core;
 mod bigint_display;
 mod bigint_from;
 mod bigint_into;
 mod bigint_new;
 mod bigint_slice;
 mod bigint_vec;
+mod bits;
 mod bytes;
 mod cmp;
 pub(crate) mod digit;
-mod divrem;
+pub(crate) mod divrem;
 mod helper_methods;
 mod len;
+pub(crate) mod modular;
 mod mul;
+mod neg;
+mod shift;
 mod sub;
 mod zero;
 

@@ -5,15 +5,6 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::bigint_core::{BigInt, Sign};
-use crate::crypto::CodecsError;
-
-impl TryFrom<&str> for BigInt {
-    type Error = CodecsError;
-
-    fn try_from(hex: &str) -> Result<Self, Self::Error> {
-        BigInt::from_hex(hex)
-    }
-}
 
 macro_rules! impl_bigint_from_unsigned_int {
     ($T:ty) => {
@@ -85,7 +76,7 @@ mod tests {
             ),
         ];
         for (a_hex, output) in data {
-            let a = BigInt::try_from(a_hex).unwrap();
+            let a = BigInt::from_hex(a_hex).unwrap();
 
             assert_eq!(a.to_hex(), output);
         }

@@ -111,6 +111,14 @@ impl<'a> Add<&'a BigInt> for BigInt {
     }
 }
 
+impl<'a> Add<BigInt> for &'a BigInt {
+    type Output = BigInt;
+
+    fn add(self, rhs: BigInt) -> Self::Output {
+        (self).add(&rhs)
+    }
+}
+
 impl Add for BigInt {
     type Output = BigInt;
 

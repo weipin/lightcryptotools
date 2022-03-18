@@ -14,6 +14,7 @@ use super::digit::{Digit, DoubleDigit, DIGIT_BITS};
 use super::helper_methods::{borrowing_sub, carrying_add};
 use super::len::len_digits;
 use super::zero::is_zero_digits;
+use crate::tools::slice::rwindows_mut_each;
 use std::cmp::Ordering;
 use std::ops::{Div, Rem};
 
@@ -358,22 +359,32 @@ fn div_rem_digits(
     (len_digits(quotient), len_digits(remainder))
 }
 
+/// Divides `dividend` by `divisor`, and returns `quotient` and `remainder`.
+/// Will panic if `divisor` is 0.
+pub(crate) fn div_rem(dividend: &BigInt, divisor: &BigInt) -> (BigInt, BigInt) {
+    let a = dividend.as_digits();
+    let b = divisor.as_digits();
+    let mut quotient = digitvec_div_rem_quotient(a.len());
+    let mut remainder = digitvec_div_rem_remainder(b.len());
+    let (quotient_len, remainder_len) = div_rem_digits(a, b, &mut quotient, &mut remainder);
+
+    let quotient_sign = if dividend.sign == divisor.sign {
+        Sign::Positive
+    } else {
+        Sign::Negative
+    };
+    (
+        BigInt::new(quotient, quotient_len, quotient_sign),
+        BigInt::new(remainder, remainder_len, dividend.sign.clone()),
+    )
+}
+
 impl<'a, 'b> Div<&'b BigInt> for &'a BigInt {
     type Output = BigInt;
 
     fn div(self, rhs: &BigInt) -> Self::Output {
-        let a = self.as_digits();
-        let b = rhs.as_digits();
-        let mut quotient = digitvec_div_rem_quotient(a.len());
-        let mut remainder = digitvec_div_rem_remainder(b.len());
-        let (quotient_len, _) = div_rem_digits(a, b, &mut quotient, &mut remainder);
-
-        let sign = if self.sign == rhs.sign {
-            Sign::Positive
-        } else {
-            Sign::Negative
-        };
-        BigInt::new(quotient, quotient_len, sign)
+        let (quotient, _) = div_rem(self, rhs);
+        quotient
     }
 }
 
@@ -382,6 +393,14 @@ impl<'a> Div<&'a BigInt> for BigInt {
 
     fn div(self, rhs: &Self) -> Self::Output {
         (&self).div(rhs)
+    }
+}
+
+impl<'a> Div<BigInt> for &'a BigInt {
+    type Output = BigInt;
+
+    fn div(self, rhs: BigInt) -> Self::Output {
+        (self).div(&rhs)
     }
 }
 
@@ -397,13 +416,8 @@ impl<'a, 'b> Rem<&'b BigInt> for &'a BigInt {
     type Output = BigInt;
 
     fn rem(self, rhs: &BigInt) -> Self::Output {
-        let a = self.as_digits();
-        let b = rhs.as_digits();
-        let mut quotient = digitvec_div_rem_quotient(a.len());
-        let mut remainder = digitvec_div_rem_remainder(b.len());
-        let (_, remainder_len) = div_rem_digits(a, b, &mut quotient, &mut remainder);
-
-        BigInt::new(remainder, remainder_len, self.sign.clone())
+        let (_, remainder) = div_rem(self, rhs);
+        remainder
     }
 }
 
@@ -415,34 +429,19 @@ impl<'a> Rem<&'a BigInt> for BigInt {
     }
 }
 
+impl<'a> Rem<BigInt> for &'a BigInt {
+    type Output = BigInt;
+
+    fn rem(self, rhs: BigInt) -> Self::Output {
+        (self).rem(&rhs)
+    }
+}
+
 impl Rem for BigInt {
     type Output = Self;
 
     fn rem(self, rhs: Self) -> Self::Output {
         (&self).rem(&rhs)
-    }
-}
-
-/// Iterates `slice` over all contiguous windows of length `window_size`,
-/// and calls a closure `f` on each window, starting at the end of the slice.
-///
-/// - The windows overlap.
-/// - Will panic if `slice` is shorter than `size`.
-fn rwindows_mut_each<T>(slice: &mut [T], window_size: usize, mut f: impl FnMut(&mut [T])) {
-    assert!(
-        window_size <= slice.len(),
-        "the window is larger than the slice"
-    );
-
-    let mut start = slice.len() - window_size;
-    let mut end = start + window_size;
-    loop {
-        f(&mut slice[start..end]);
-        if start == 0 {
-            break;
-        }
-        start -= 1;
-        end -= 1;
     }
 }
 
@@ -564,8 +563,8 @@ mod tests {
             "01eca5aE9Cc7"),
         ];
         for (a_hex, b_hex) in data {
-            let a = BigInt::try_from(a_hex).unwrap();
-            let b = BigInt::try_from(b_hex).unwrap();
+            let a = BigInt::from_hex(a_hex).unwrap();
+            let b = BigInt::from_hex(b_hex).unwrap();
 
             let quotient = &a / &b;
             let remainder = &a % &b;

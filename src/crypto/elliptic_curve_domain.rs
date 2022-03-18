@@ -4,16 +4,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-pub(crate) mod cpu_endian;
-pub(crate) mod quickcheck;
+use crate::bigint::BigInt;
+use crate::math::elliptic_curve::{Curve, Point};
 
-#[cfg(test)]
-mod tests {
-    use crate::testing_tools::cpu_endian::cpu_endian;
-
-    #[test]
-    fn dump_info() {
-        let cpu_endian = cpu_endian();
-        println!("CPU endian: {cpu_endian}")
-    }
+pub struct EllipticCurveDomain {
+    pub(crate) curve: Curve,
+    pub(crate) base_point: Point,
+    pub(crate) base_point_order: BigInt,
+    pub(crate) cofactor: u32,
 }
