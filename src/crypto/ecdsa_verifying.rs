@@ -6,7 +6,8 @@
 
 use crate::bigint::bigint_core::Sign;
 use crate::bigint::BigInt;
-use crate::crypto::ecdsa_core::{EcdsaSignature, PublicKey};
+use crate::crypto::ecdsa_core::EcdsaSignature;
+use crate::crypto::ecdsa_key::PublicKey;
 use crate::crypto::elliptic_curve_domain::EllipticCurveDomain;
 use ring::digest;
 use ring::digest::Algorithm;
@@ -24,7 +25,7 @@ pub fn verify(
     curve_domain: EllipticCurveDomain,
     algorithm: &'static Algorithm,
 ) -> Result<bool, EcdsaVerifyingError> {
-    if !curve_domain.validate_point(public_key) {
+    if !public_key.is_valid() {
         return Err(EcdsaVerifyingError::InvalidPublicKey);
     }
 

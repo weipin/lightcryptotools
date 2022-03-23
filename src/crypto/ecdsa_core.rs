@@ -4,13 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use super::ecdsa_key::{PrivateKey, PublicKey};
 use super::elliptic_curve_domain::EllipticCurveDomain;
-use crate::bigint::modular::modulo;
-use crate::bigint::BigInt;
-use crate::math::elliptic_curve::{invert, Point};
-
-pub type PrivateKey = BigInt;
-pub type PublicKey = Point;
+use crate::bigint::bigint_core::{BigInt, Sign};
+use crate::math::modular::{invert, modulo};
 
 pub struct EcdsaSignature {
     r: BigInt,
@@ -18,12 +15,7 @@ pub struct EcdsaSignature {
 }
 
 impl EllipticCurveDomain {
-    /// Returns the public key of `private_key`.
-    pub(crate) fn public_key_from_private_key(&self, private_key: &PrivateKey) -> PublicKey {
-        self.curve.mul_point(&self.base_point, private_key)
-    }
-
-    /// Generates a ECDSA signature of `hash` with `private_key`.
+    /// Generates a ECDSA signature of `hash_n` with `private_key`.
     /// `k` is a random number between 1 and n – 1.
     ///
     /// Returns None if either element of the signature (`r` or `s`) is zero.
@@ -33,6 +25,7 @@ impl EllipticCurveDomain {
         private_key: &PrivateKey,
         k: &BigInt,
     ) -> Option<EcdsaSignature> {
+        assert_eq!(private_key.curve_domain, self);
         assert!(hash_n.bit_len() <= self.base_point_order.bit_len());
 
         // `k` in [1, n - 1]
@@ -47,7 +40,7 @@ impl EllipticCurveDomain {
         }
 
         // s = (h + rd) / k mod n
-        let s = (hash_n + &r * private_key) * invert(k, &self.base_point_order);
+        let s = (hash_n + &r * &private_key.data) * invert(k, &self.base_point_order);
         let s = modulo(&s, &self.base_point_order);
         if s.is_zero() {
             return None;
@@ -62,15 +55,17 @@ impl EllipticCurveDomain {
     pub(crate) fn verify(
         &self,
         signature: &EcdsaSignature,
-        hash: &BigInt,
+        hash_n: &BigInt,
         public_key: &PublicKey,
     ) -> bool {
+        assert_eq!(public_key.curve_domain, self);
+
         // w = 1 / s mod n
         // n: base point order
         let w = invert(&signature.s, &self.base_point_order);
 
         // u = wh mod n
-        let u = &w * hash;
+        let u = &w * hash_n;
         let u = modulo(&u, &self.base_point_order);
 
         // v = wr mod n
@@ -79,7 +74,7 @@ impl EllipticCurveDomain {
 
         // Q = uG + vP
         let ug = self.curve.mul_point(&self.base_point, &u);
-        let vp = self.curve.mul_point(public_key, &v);
+        let vp = self.curve.mul_point(&public_key.data, &v);
         let q = self.curve.add_points(&ug, &vp);
         let qx = modulo(&q.x, &self.base_point_order);
 
@@ -87,10 +82,26 @@ impl EllipticCurveDomain {
     }
 }
 
+impl BigInt {
+    pub(crate) fn from_be_bytes_with_max_bits_len(
+        bytes: &[u8],
+        max_bits_len: usize,
+        sign: Sign,
+    ) -> BigInt {
+        let mut n = BigInt::from_be_bytes(bytes, sign);
+        let n_bit_len = n.bit_len();
+        if n_bit_len > max_bits_len {
+            n = n >> (n_bit_len - max_bits_len);
+        }
+        n
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math::elliptic_curve::Curve;
+    use crate::math::elliptic_curve::{Curve, Point};
+    use crate::math::modular::modulo;
 
     #[test]
     fn test_ecdsa_signature() {
@@ -112,15 +123,22 @@ mod tests {
             base_point,
             base_point_order,
             cofactor: 1,
+            name: "",
         };
 
-        let private_key = BigInt::from(7);
-        let public_key = domain.public_key_from_private_key(&private_key);
+        let private_key = PrivateKey {
+            data: BigInt::from(7),
+            curve_domain: &domain,
+        };
+        let public_key = private_key.public_key();
         assert_eq!(
             public_key,
             PublicKey {
-                x: BigInt::zero(),
-                y: BigInt::from(6)
+                data: Point {
+                    x: BigInt::zero(),
+                    y: BigInt::from(6)
+                },
+                curve_domain: &domain
             }
         );
 

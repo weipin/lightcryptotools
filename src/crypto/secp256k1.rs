@@ -38,6 +38,7 @@ pub fn secp256k1() -> &'static EllipticCurveDomain {
             )
             .unwrap(),
             cofactor: 1,
+            name: "secp256k1",
         };
         SECP256K1 = Some(domain);
     });

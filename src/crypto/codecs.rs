@@ -93,14 +93,15 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
 /// let bytes = hex_to_bytes("137acf").unwrap();
 /// assert_eq!(bytes, &[0x13, 0x7a, 0xcf]);
 /// ```
-pub fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, CodecsError> {
+pub fn hex_to_bytes<T: AsRef<[u8]>>(hex: T) -> Result<Vec<u8>, CodecsError> {
+    let hex = hex.as_ref();
     let hex_len_is_even = { hex.len() & 1 == 0 };
     if !hex_len_is_even {
         return Err(CodecsError::NotByteAligned);
     }
 
     let mut bytes = Vec::with_capacity(hex.len() / 2);
-    for chunk in hex.as_bytes().chunks_exact(2) {
+    for chunk in hex.chunks_exact(2) {
         let c = chunk[0] as u16;
 
         // The result is [0, 9] for `c` in [48, 57],

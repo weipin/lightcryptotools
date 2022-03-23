@@ -5,8 +5,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::bigint_core::BigInt;
-use super::digit::DIGIT_BITS;
 use super::len::len_digits;
+use crate::bigint::digit::Digit;
 use std::iter::repeat;
 use std::ops::{Shl, Shr};
 
@@ -19,8 +19,8 @@ fn shift_right(a: &mut BigInt, n: usize) {
 
     let digits = &mut a.digits_storage[..a.digits_len];
     let mut digits_len = a.digits_len;
-    let shifting_digits_len = n / DIGIT_BITS as usize;
-    let shifting_bits_len = n % DIGIT_BITS as usize;
+    let shifting_digits_len = n / Digit::BITS as usize;
+    let shifting_bits_len = n % Digit::BITS as usize;
 
     // Shifts in digit.
     if shifting_digits_len > 0 {
@@ -31,7 +31,7 @@ fn shift_right(a: &mut BigInt, n: usize) {
 
     // Shifts remaining bits.
     if shifting_bits_len > 0 {
-        let next_shifting_bits_len = DIGIT_BITS as usize - shifting_bits_len;
+        let next_shifting_bits_len = Digit::BITS as usize - shifting_bits_len;
         let mut carry = 0;
         for digit in digits[..digits_len].iter_mut().rev() {
             let t = *digit << next_shifting_bits_len;
@@ -64,8 +64,8 @@ impl Shr<usize> for BigInt {
 
 fn shift_left(a: &mut BigInt, n: usize) {
     let mut digits_len = a.digits_len;
-    let shifting_digits_len = n / DIGIT_BITS as usize;
-    let shifting_bits_len = n % DIGIT_BITS as usize;
+    let shifting_digits_len = n / Digit::BITS as usize;
+    let shifting_bits_len = n % Digit::BITS as usize;
 
     // Shifts in digit.
     if shifting_digits_len > 0 {
@@ -81,7 +81,7 @@ fn shift_left(a: &mut BigInt, n: usize) {
 
     // Shifts remaining bits.
     if shifting_bits_len > 0 {
-        let next_shifting_bits_len = DIGIT_BITS as usize - shifting_bits_len;
+        let next_shifting_bits_len = Digit::BITS as usize - shifting_bits_len;
         let mut carry = 0;
         if digits_len == a.digits_storage.len() {
             // Extends the storage for the possible carry at the most significant digit.

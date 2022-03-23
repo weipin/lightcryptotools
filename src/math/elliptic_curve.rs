@@ -4,11 +4,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::bigint::modular::modulo;
+use super::modular::{invert, modulo};
 use crate::bigint::BigInt;
 
 /// A curve "y^2 = x^3 + a * x + b"
 /// with respect to the integers modulo `p`.
+#[derive(Debug)]
 pub(crate) struct Curve {
     pub(crate) a: BigInt,
     pub(crate) b: BigInt,
@@ -129,37 +130,6 @@ impl Curve {
     }
 }
 
-/// Returns the modulo multiplicative inverse of `a`
-/// with respect to the integers modulo `n`.
-pub(crate) fn invert(a: &BigInt, n: &BigInt) -> BigInt {
-    // Employs the extended Euclidean algorithm:
-    // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Computing_multiplicative_inverses_in_modular_structures
-    debug_assert!(!a.is_zero());
-    debug_assert!(n > &BigInt::one());
-
-    let a = modulo(a, n); // ensures a > 0
-
-    let mut t = BigInt::zero();
-    let mut newt = BigInt::one();
-    let mut r = n.clone();
-    let mut newr = a;
-
-    while !newr.is_zero() {
-        let quotient = &r / &newr;
-        (newt, t) = (&t - &quotient * &newt, newt);
-        (newr, r) = (&r - &quotient * &newr, newr);
-    }
-
-    if r > BigInt::one() {
-        panic!("a is not invertible");
-    }
-
-    if t < BigInt::zero() {
-        t = &t + n;
-    }
-    t
-}
-
 /// A curve point.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Point {
@@ -177,7 +147,7 @@ impl Point {
     }
 
     /// Creates a point at infinity.
-    fn identity_element() -> Point {
+    pub(crate) fn identity_element() -> Point {
         Point {
             x: BigInt::zero(),
             y: BigInt::zero(),

@@ -32,26 +32,14 @@ impl BigInt {
         Self::new(digits, digits_len, sign)
     }
 
-    pub(crate) fn from_be_bytes_with_max_bits_len(
-        bytes: &[u8],
-        max_bits_len: usize,
-        sign: Sign,
-    ) -> BigInt {
-        let mut n = BigInt::from_be_bytes(bytes, sign);
-        let n_bit_len = n.bit_len();
-        if n_bit_len > max_bits_len {
-            n = n >> (n_bit_len - max_bits_len);
-        }
-        n
-    }
-
     /// Creates a `BigInt` from hexadecimal representation `hex`.
-    pub fn from_hex(hex: &str) -> Result<BigInt, CodecsError> {
+    pub fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<BigInt, CodecsError> {
+        let hex = hex.as_ref();
         if hex.is_empty() {
             return Ok(BigInt::from(0));
         }
 
-        let (sign, hex) = match hex.chars().next().unwrap() {
+        let (sign, hex) = match *hex.first().unwrap() as char {
             '-' => (Sign::Negative, &hex[1..]),
             '+' => (Sign::Positive, &hex[1..]),
             _ => (Sign::Positive, hex),
@@ -66,7 +54,10 @@ impl BigInt {
         let bytes = if hex.len() & 1 == 0 {
             hex_to_bytes(hex)?
         } else {
-            hex_to_bytes(&format!("0{hex}"))?
+            let mut t = Vec::with_capacity(hex.len() + 1);
+            t.push(b'0');
+            t.extend_from_slice(hex);
+            hex_to_bytes(&t)?
         };
 
         Ok(Self::from_be_bytes(&bytes, sign))

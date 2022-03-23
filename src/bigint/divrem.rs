@@ -10,7 +10,7 @@ use super::bigint_core::{BigInt, Sign};
 use super::bigint_slice::{is_valid_biguint_slice, BigUintSlice};
 use super::bigint_vec::{digitvec_with_len, DigitVec};
 use super::cmp::cmp_digits;
-use super::digit::{Digit, DoubleDigit, DIGIT_BITS};
+use super::digit::{Digit, DoubleDigit};
 use super::helper_methods::{borrowing_sub, carrying_add};
 use super::len::len_digits;
 use super::zero::is_zero_digits;
@@ -74,7 +74,7 @@ fn div_rem_digits(
         for (dividend_digit, quotient_digit) in
             dividend.iter().rev().zip(quotient.iter_mut().rev())
         {
-            let t = remainder0 << DIGIT_BITS | *dividend_digit as DoubleDigit;
+            let t = remainder0 << Digit::BITS | *dividend_digit as DoubleDigit;
             *quotient_digit = (t / divisor0) as Digit;
             remainder0 = t % divisor0
         }
@@ -127,13 +127,13 @@ fn div_rem_digits(
     // `divisor0_normalized` and `divisor1_normalized`.
     //
     // `d`: the scaling factor from the Algorithm D.
-    // `next_d`: `next_d = DIGIT_BITS - d`, will be repeatedly used.
+    // `next_d`: `next_d = Digit::BITS - d`, will be repeatedly used.
     let (divisor0_normalized, divisor1_normalized, d, next_d) = {
         // Determines `d`, to meet the condition `divisor0_normalized >= b/2` (Theorem B).
         //
         // Equivalent code:
         // ```
-        // let DIGIT_MAX_HALF = 1 << (DIGIT_BITS - 1);
+        // let DIGIT_MAX_HALF = 1 << (Digit::BITS - 1);
         // let mut d = 0;
         // while divisor0 < DIGIT_MAX_HALF {
         //    d += 1;
@@ -142,7 +142,7 @@ fn div_rem_digits(
         // ```
         let d = divisor0.leading_zeros() as Digit; // Adapted from the crate num-bigint
 
-        let next_d = DIGIT_BITS as Digit - d;
+        let next_d = Digit::BITS as Digit - d;
         let divisor0_normalized;
         let divisor1_normalized;
         if d > 0 {
@@ -277,7 +277,7 @@ fn div_rem_digits(
                 // - For `dividend0_normalized < divisor0_normalized`, `q_hat < (b - 1)`.
                 // - For `dividend0_normalized > divisor0_normalized`, the condition is invalid
                 //   due to `dividend_window / divisor < b` from the algorithm D.
-                let t = (dividend0_normalized << DIGIT_BITS) | dividend1_normalized;
+                let t = (dividend0_normalized << Digit::BITS) | dividend1_normalized;
                 let q_hat = t / divisor0_normalized;
                 let r_hat = t % divisor0_normalized;
 
@@ -291,8 +291,8 @@ fn div_rem_digits(
                 // `q_hat * divisor1_normalized > (r_hat * b + dividend2_normalized)`
                 let mut lhs = q_hat * divisor1_normalized;
 
-                debug_assert!(r_hat <= Digit::MAX as DoubleDigit); // to ensure `r_hat << DIGIT_BITS` won't overflow
-                let mut rhs = (r_hat << DIGIT_BITS) + dividend2_normalized;
+                debug_assert!(r_hat <= Digit::MAX as DoubleDigit); // to ensure `r_hat << Digit::BITS` won't overflow
+                let mut rhs = (r_hat << Digit::BITS) + dividend2_normalized;
 
                 if lhs > rhs {
                     q_hat -= 1;
@@ -322,7 +322,7 @@ fn div_rem_digits(
                     // `(r_hat + divisor0_normalized) < b`.
                     if (r_hat + divisor0_normalized) <= Digit::MAX as DoubleDigit {
                         lhs -= divisor1_normalized;
-                        rhs += divisor0_normalized << DIGIT_BITS;
+                        rhs += divisor0_normalized << Digit::BITS;
                         if lhs > rhs {
                             q_hat -= 1;
                         }
@@ -457,7 +457,7 @@ fn sub_mul_digits(a: &mut [Digit], b: &BigUintSlice, c: Digit) {
     let mut a_mut = a.iter_mut();
     for b_digit in b {
         let t = (*b_digit as DoubleDigit) * c + mul_carry;
-        mul_carry = t >> DIGIT_BITS;
+        mul_carry = t >> Digit::BITS;
 
         let a_digit = a_mut.next().unwrap();
         (*a_digit, sub_borrow) = borrowing_sub(*a_digit, t as Digit, sub_borrow);

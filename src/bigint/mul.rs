@@ -10,7 +10,7 @@ use super::bigint_core::{BigInt, Sign};
 use super::bigint_slice::{is_valid_biguint_slice, BigUintSlice};
 use super::bigint_vec::{digitvec_with_len, DigitVec};
 use super::cmp::cmp_digits;
-use super::digit::{Digit, DoubleDigit, DIGIT_BITS};
+use super::digit::{Digit, DoubleDigit};
 use super::len::len_digits;
 use super::zero::is_zero_digits;
 use std::cmp::Ordering;
@@ -78,7 +78,7 @@ pub(crate) fn mul_digits(a: &BigUintSlice, b: &BigUintSlice, result: &mut [Digit
             // [Numeric casting][1] from a larger integer to a smaller integer will truncate.
             // https://doc.rust-lang.org/reference/expressions/operator-expr.html#numeric-cast
             *result_digit = t as Digit;
-            carry = t >> DIGIT_BITS;
+            carry = t >> Digit::BITS;
         }
 
         if carry > 0 {

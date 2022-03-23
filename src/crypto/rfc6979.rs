@@ -5,7 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::bigint::bigint_core::{BigInt, Sign};
-use crate::crypto::ecdsa_core::PrivateKey;
+use crate::crypto::ecdsa_key::PrivateKey;
 use ring::hmac;
 use ring::hmac::Algorithm;
 
@@ -34,9 +34,11 @@ impl Rfc6979 {
         private_key: &PrivateKey,
         algorithm: &'static Algorithm,
     ) -> BigInt {
+        assert_eq!(self.q, private_key.curve_domain.base_point_order);
+
         let hash_size = algorithm.digest_algorithm().output_len;
 
-        let mut key_and_msg = self.int2octets(private_key);
+        let mut key_and_msg = self.int2octets(&private_key.data);
         key_and_msg.extend_from_slice(&self.bits2octets(hash));
         let v = vec![1_u8; hash_size];
         let k = vec![0_u8; hash_size];
@@ -114,13 +116,22 @@ impl Rfc6979 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::crypto::elliptic_curve_domain::EllipticCurveDomain;
+    use crate::crypto::PrivateKey;
     use ring::digest;
 
     #[test]
     fn test_generate_nonce() {
         let q = BigInt::from_hex("4000000000000000000020108A2E0CC0D99F8A5EF").unwrap();
-        let private_key =
-            BigInt::from_hex("09A4D6792295A7F730FC3F2B49CBC0F62E862272F").unwrap();
+        let curve_domain = EllipticCurveDomain {
+            base_point_order: q.clone(),
+            ..Default::default()
+        };
+
+        let private_key = PrivateKey {
+            data: BigInt::from_hex("09A4D6792295A7F730FC3F2B49CBC0F62E862272F").unwrap(),
+            curve_domain: &curve_domain,
+        };
         let rfc6979 = Rfc6979::new(q);
 
         let message = b"sample";

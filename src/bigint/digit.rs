@@ -24,8 +24,7 @@ pub(crate) type DoubleDigit = u128;
 #[cfg(u8_digit)]
 pub(crate) type DoubleDigit = u16;
 
-pub(crate) const DIGIT_BITS: u32 = Digit::BITS;
-pub const DIGIT_BYTES: u32 = DIGIT_BITS / 8;
+pub const DIGIT_BYTES: u32 = Digit::BITS / 8;
 
 #[cfg(test)]
 mod tests {

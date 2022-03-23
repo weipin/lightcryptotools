@@ -5,3 +5,4 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 pub(crate) mod elliptic_curve;
+pub(crate) mod modular;

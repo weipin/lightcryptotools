@@ -5,7 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::bigint_core::BigInt;
-use super::digit::DIGIT_BITS;
+use crate::bigint::digit::Digit;
 
 impl BigInt {
     /// Returns the number of bits representing the big integer.
@@ -16,7 +16,7 @@ impl BigInt {
         }
 
         let most_significant_digit = self.digits_storage[self.digits_len - 1];
-        self.digits_len * DIGIT_BITS as usize - most_significant_digit.leading_zeros() as usize
+        self.digits_len * Digit::BITS as usize - most_significant_digit.leading_zeros() as usize
     }
 
     pub(crate) fn bits(&self) -> Vec<bool> {
@@ -30,7 +30,7 @@ impl BigInt {
         if let Some((last, elements)) = digits.split_last() {
             for digit in elements {
                 let mut digit = *digit;
-                for _ in 0..DIGIT_BITS {
+                for _ in 0..Digit::BITS {
                     bits.push(digit & 1 == 1);
                     digit >>= 1;
                 }
@@ -38,7 +38,7 @@ impl BigInt {
 
             // Handles the most significant digit
             let mut digit = *last;
-            for _ in 0..(DIGIT_BITS - digit.leading_zeros()) {
+            for _ in 0..(Digit::BITS - digit.leading_zeros()) {
                 bits.push(digit & 1 == 1);
                 digit >>= 1;
             }

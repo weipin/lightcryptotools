@@ -71,6 +71,7 @@ mod tests {
             },
             base_point_order: BigInt::from(19),
             cofactor: 1,
+            name: "",
         };
 
         // Fakes a cofactor != 1 to test subgroup validating.
@@ -86,6 +87,7 @@ mod tests {
             },
             base_point_order: BigInt::from(19),
             cofactor: 2,
+            name: "",
         };
 
         // (x, y, is_validate)

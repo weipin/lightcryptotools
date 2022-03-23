@@ -47,13 +47,13 @@ mod tests {
     #[test]
     fn test_to_hex() {
         let data = [
-            // (BigInt::from(0), "0"),
+            (BigInt::from(0), "0"),
             (BigInt::from(1), "1"),
-            // (BigInt::from(-1), "-1"),
-            // (BigInt::from(i8::MIN), "-80"),
-            // (BigInt::from_hex("").unwrap(), "0"),
-            // (BigInt::from_hex("-0").unwrap(), "0"),
-            // (BigInt::from_hex("+0").unwrap(), "0"),
+            (BigInt::from(-1), "-1"),
+            (BigInt::from(i8::MIN), "-80"),
+            (BigInt::from_hex("").unwrap(), "0"),
+            (BigInt::from_hex("-0").unwrap(), "0"),
+            (BigInt::from_hex("+0").unwrap(), "0"),
         ];
 
         for (a, output) in data {

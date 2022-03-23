@@ -19,7 +19,7 @@ pub(crate) mod digit;
 pub(crate) mod divrem;
 mod helper_methods;
 mod len;
-pub(crate) mod modular;
+mod math;
 mod mul;
 mod neg;
 mod shift;
