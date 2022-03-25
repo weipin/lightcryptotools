@@ -7,19 +7,12 @@
 use crate::bigint::BigInt;
 use crate::math::elliptic_curve::{Curve, Point};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct EllipticCurveDomain {
     pub(crate) curve: Curve,
     pub(crate) base_point: Point,
     pub(crate) base_point_order: BigInt,
     pub(crate) cofactor: u32,
-    pub(crate) name: &'static str,
-}
-
-impl PartialEq for EllipticCurveDomain {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-    }
 }
 
 impl Default for EllipticCurveDomain {
@@ -33,7 +26,6 @@ impl Default for EllipticCurveDomain {
             base_point: Point::identity_element(),
             base_point_order: BigInt::zero(),
             cofactor: 1,
-            name: "",
         }
     }
 }

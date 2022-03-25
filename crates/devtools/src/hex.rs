@@ -4,18 +4,22 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use quickcheck::Gen;
-use std::str::from_utf8;
+use num_bigint::BigUint;
 
-/// Returns a random string with `n` hexadecimal digits.
-pub fn random_hex(n: usize) -> String {
-    const HEX_CHARS_BYTES: &[u8] = "0123456789abcdef".as_bytes();
+pub fn decimal_to_hex(decimal: &str) -> String {
+    let a = BigUint::parse_bytes(decimal.as_bytes(), 10).unwrap();
+    format!("{:x}", a)
+}
 
-    let mut gen = Gen::new(0);
-    let mut chars = vec![0_u8; n];
-    for c in chars.iter_mut() {
-        *c = *gen.choose(HEX_CHARS_BYTES).unwrap();
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_decimal_to_hex() {
+        let decimal = "53093026025011841560144140884953714701527835907384159075569471996245155392944";
+        let hex = "7561967ae7e35552012b5778030b36a39b62dfe899bb9edbbc57344e94f22db0";
+
+        assert_eq!(decimal_to_hex(decimal), hex);
     }
-
-    String::from(from_utf8(&chars).unwrap())
 }

@@ -9,7 +9,7 @@ use crate::bigint::BigInt;
 
 /// A curve "y^2 = x^3 + a * x + b"
 /// with respect to the integers modulo `p`.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct Curve {
     pub(crate) a: BigInt,
     pub(crate) b: BigInt,

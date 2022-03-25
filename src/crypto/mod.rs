@@ -10,8 +10,10 @@ mod ecdsa_key;
 mod ecdsa_signing;
 mod ecdsa_verifying;
 mod elliptic_curve_domain;
+mod elliptic_curve_domain_key_encoding;
 mod elliptic_curve_domain_validating;
 mod rfc6979;
+mod sec1;
 mod secp256k1;
 
 pub use codecs::bytes_to_hex;

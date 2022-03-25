@@ -123,7 +123,6 @@ mod tests {
             base_point,
             base_point_order,
             cofactor: 1,
-            name: "",
         };
 
         let private_key = PrivateKey {
