@@ -51,4 +51,8 @@ impl PublicKey<'_> {
             Err(err) => Err(*err.downcast_ref::<PointDecodingError>().unwrap()),
         }
     }
+
+    pub fn to_sec1_hex(&self, compressed: bool) -> String {
+        Sec1::encode_point(&self.data, self.curve_domain, compressed)
+    }
 }

@@ -12,4 +12,10 @@ pub(crate) trait EllipticCurveDomainKeyEncoding {
         data: T,
         curve_domain: &EllipticCurveDomain,
     ) -> Result<Point, Box<dyn std::error::Error>>;
+
+    fn encode_point(
+        point: &Point,
+        curve_domain: &EllipticCurveDomain,
+        compressed: bool,
+    ) -> String;
 }

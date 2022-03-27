@@ -6,8 +6,20 @@
 
 //! Converts digits to/from byte sequences.
 
+use crate::bigint::bigint_core::BigInt;
 use crate::bigint::digit::{Digit, DIGIT_BYTES};
 use std::borrow::Cow;
+
+impl BigInt {
+    pub(crate) fn byte_len(&self) -> usize {
+        if self.is_zero() {
+            return 0;
+        }
+
+        let bit_len = self.bit_len();
+        (bit_len + 7) / 8
+    }
+}
 
 /// Returns the memory representation of `digits` as a byte vector.
 pub(crate) fn be_digits_to_be_bytes(digits: &[Digit]) -> Vec<u8> {
@@ -61,4 +73,33 @@ pub(crate) fn be_bytes_to_le_digits(bytes: &[u8]) -> Vec<Digit> {
     digits.reverse();
 
     digits
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bigint::digit::{Digit, DoubleDigit};
+    use crate::testing_tools::quickcheck::BigIntHexString;
+    use ::quickcheck_macros::quickcheck;
+
+    #[test]
+    fn test_byte_len() {
+        let data = [
+            (BigInt::from(0), 0),
+            (BigInt::from(1), 1),
+            (BigInt::from(Digit::MAX), DIGIT_BYTES),
+            (BigInt::from(Digit::MAX / 2), DIGIT_BYTES),
+            (BigInt::from(Digit::MAX as DoubleDigit + 1), DIGIT_BYTES + 1),
+        ];
+
+        for (a, byte_len) in data {
+            assert_eq!(a.byte_len(), byte_len as usize);
+        }
+    }
+
+    #[quickcheck]
+    fn byte_len_compare_as_bytes(hex: BigIntHexString) -> bool {
+        let a = BigInt::from_hex(hex.0).unwrap();
+        a.byte_len() == a.to_be_bytes().len()
+    }
 }

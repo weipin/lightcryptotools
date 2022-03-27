@@ -38,7 +38,7 @@ impl Display for PointDecodingError {
 impl std::error::Error for PointDecodingError {}
 
 impl EllipticCurveDomainKeyEncoding for Sec1 {
-    /// Decodes a public key as described in http://www.secg.org/SEC1-Ver-1.0.pdf,
+    /// Decodes a Point as described in http://www.secg.org/SEC1-Ver-1.0.pdf,
     /// sections 2.3.3/2.3.4.
     ///
     /// uncompressed: '4' + x + y
@@ -48,7 +48,7 @@ impl EllipticCurveDomainKeyEncoding for Sec1 {
         curve_domain: &EllipticCurveDomain,
     ) -> Result<Point, Box<dyn std::error::Error>> {
         let hex_bytes = data.as_ref();
-        let point_element_hex_len = curve_domain.base_point_order.to_be_bytes().len() * 2;
+        let point_element_hex_len = curve_domain.base_point_order.byte_len() * 2;
 
         if hex_bytes.len() < point_element_hex_len + 2 {
             return Err(Box::new(PointDecodingError::InvalidFormat));
@@ -130,12 +130,49 @@ impl EllipticCurveDomainKeyEncoding for Sec1 {
 
         Ok(point)
     }
+
+    /// Encodes `point` as described in http://www.secg.org/SEC1-Ver-1.0.pdf,
+    /// sections 2.3.3/2.3.4.
+    ///
+    /// uncompressed: '4' + x + y
+    /// compressed:   '2'|'3' + x
+    ///
+    /// This method assumes that the caller has made sure `point` is legitimate,
+    /// it does not validate `point` against `curve_domain`.
+    ///
+    /// Both elements of `point` must be in the range (> 0 and < base_point_order),
+    /// otherwise this function will panic.
+    fn encode_point(
+        point: &Point,
+        curve_domain: &EllipticCurveDomain,
+        compressed: bool,
+    ) -> String {
+        assert!(point.x > BigInt::zero() && point.x < curve_domain.base_point_order);
+        assert!(point.y > BigInt::zero() && point.y < curve_domain.base_point_order);
+
+        let hex_len = curve_domain.base_point_order.byte_len() * 2;
+        if compressed {
+            if point.y.is_even() {
+                let x_hex = point.x.to_hex();
+                format!("02{x_hex:0>hex_len$}")
+            } else {
+                let x_hex = point.x.to_hex();
+                format!("03{x_hex:0>hex_len$}")
+            }
+        } else {
+            let x_hex = point.x.to_hex();
+            let y_hex = point.y.to_hex();
+            format!("04{x_hex:0>hex_len$}{y_hex:0>hex_len$}")
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::secp256k1;
+    use crate::crypto::{secp256k1, PrivateKey, PublicKey};
+    use crate::testing_tools::quickcheck::HexString;
+    use quickcheck::{Gen, QuickCheck};
 
     #[test]
     fn test_point_from_valid_hex() {
@@ -318,6 +355,15 @@ mod tests {
                 ),
                 PointDecodingError::InvalidPoint,
             ),
+            // invalid curve point (identity element)
+            (
+                concat!(
+                    "04",
+                    "0000000000000000000000000000000000000000000000000000000000000000",
+                    "0000000000000000000000000000000000000000000000000000000000000000"
+                ),
+                PointDecodingError::InvalidPoint,
+            ),
         ];
         for (hex, err) in data {
             let result = Sec1::decode_point(hex, secp256k1);
@@ -330,5 +376,154 @@ mod tests {
                 err
             );
         }
+    }
+
+    #[test]
+    fn test_encode_point() {
+        let secp256k1 = secp256k1();
+        // (hex, point, compressed)
+        let data = [
+            // uncompressed
+            (
+                concat!(
+                    "04",
+                    "e395153848a05cedf4630c2c512a245db2d8281eb1f566cc8768f98c66c042c8",
+                    "8a9e6985181caaadfed4a887fcf4c95c649d20176644612443a8cbb06b0dce7f"
+                ),
+                Point {
+                    x: BigInt::from_hex(
+                        "e395153848a05cedf4630c2c512a245db2d8281eb1f566cc8768f98c66c042c8",
+                    )
+                    .unwrap(),
+                    y: BigInt::from_hex(
+                        "8a9e6985181caaadfed4a887fcf4c95c649d20176644612443a8cbb06b0dce7f",
+                    )
+                    .unwrap(),
+                },
+                false,
+            ),
+            // compressed with even y
+            (
+                concat!(
+                    "02",
+                    "e395153848a05cedf4630c2c512a245db2d8281eb1f566cc8768f98c66c042c8"
+                ),
+                Point {
+                    x: BigInt::from_hex(
+                        "e395153848a05cedf4630c2c512a245db2d8281eb1f566cc8768f98c66c042c8",
+                    )
+                    .unwrap(),
+                    y: BigInt::from_hex(
+                        "7561967ae7e35552012b5778030b36a39b62dfe899bb9edbbc57344e94f22db0",
+                    )
+                    .unwrap(),
+                },
+                true,
+            ),
+            // compressed with odd y
+            (
+                concat!(
+                    "03",
+                    "e395153848a05cedf4630c2c512a245db2d8281eb1f566cc8768f98c66c042c8"
+                ),
+                Point {
+                    x: BigInt::from_hex(
+                        "e395153848a05cedf4630c2c512a245db2d8281eb1f566cc8768f98c66c042c8",
+                    )
+                    .unwrap(),
+                    y: BigInt::from_hex(
+                        "8a9e6985181caaadfed4a887fcf4c95c649d20176644612443a8cbb06b0dce7f",
+                    )
+                    .unwrap(),
+                },
+                true,
+            ),
+            // uncompressed with small elements
+            (
+                concat!(
+                    "04",
+                    "00000000000000000000000000000000000000000000000000000000000042c8",
+                    "00000000000000000000000000000000000000000000000000000000000dce7f"
+                ),
+                Point {
+                    x: BigInt::from_hex("42c8").unwrap(),
+                    y: BigInt::from_hex("dce7f").unwrap(),
+                },
+                false,
+            ),
+            // compressed with small elements
+            (
+                concat!(
+                    "03",
+                    "000000000000000000000000000000000000000000000000000000000000e395"
+                ),
+                Point {
+                    x: BigInt::from_hex("e395").unwrap(),
+                    y: BigInt::from_hex(
+                        "8a9e6985181caaadfed4a887fcf4c95c649d20176644612443a8cbb06b0dce7f",
+                    )
+                    .unwrap(),
+                },
+                true,
+            ),
+        ];
+        for (hex, point, compressed) in data {
+            assert_eq!(Sec1::encode_point(&point, secp256k1, compressed), hex);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_encode_point_panic_with_negative_element() {
+        let secp256k1 = secp256k1();
+        let point = Point {
+            x: BigInt::from(-1),
+            y: BigInt::from(2),
+        };
+        Sec1::encode_point(&point, secp256k1, true);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_encode_point_panic_with_element_too_great() {
+        let secp256k1 = secp256k1();
+        let x_hex = concat!(
+            "112233",
+            "e395153848a05cedf4630c2c512a245db2d8281eb1f566cc8768f98c66c042c8"
+        );
+        let point = Point {
+            x: BigInt::from_hex(x_hex).unwrap(),
+            y: BigInt::from(2),
+        };
+        Sec1::encode_point(&point, secp256k1, true);
+    }
+
+    #[test]
+    fn point_to_hex_double_conversion() {
+        const GEN_SIZE: usize = 16;
+        const TEST_NUMBER: u64 = 100;
+
+        fn prop(d_hex: HexString) -> bool {
+            let secp256k1 = secp256k1();
+            let private_key = PrivateKey {
+                data: BigInt::from_hex(&d_hex.0).unwrap(),
+                curve_domain: secp256k1,
+            };
+            if private_key.data.is_zero() {
+                return true; // ignore
+            }
+            let public_key = private_key.public_key();
+            let hex = public_key.to_sec1_hex(true);
+            let hex2 = PublicKey::from_sec1_hex(&hex, secp256k1)
+                .unwrap()
+                .to_sec1_hex(true);
+
+            hex == hex2
+        }
+
+        QuickCheck::new()
+            .gen(Gen::new(GEN_SIZE))
+            .tests(TEST_NUMBER)
+            .quickcheck(prop as fn(HexString) -> bool)
     }
 }
