@@ -6,3 +6,4 @@
 
 mod secp256k1_public_key;
 mod secp256k1_sec1;
+mod secp256k1_signing_verifying;

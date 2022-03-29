@@ -27,7 +27,7 @@ use std::fmt::Display;
 /// # Examples
 ///
 /// ```
-/// use lightcryptotools::crypto::bytes_to_hex;
+/// use lightcryptotools::crypto::codecs::bytes_to_hex;
 ///
 /// let hex = bytes_to_hex(&[0x13, 0x7a, 0xcf]);
 /// assert_eq!(hex, "137acf");
@@ -88,7 +88,7 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
 /// # Examples
 ///
 /// ```
-/// use lightcryptotools::crypto::hex_to_bytes;
+/// use lightcryptotools::crypto::codecs::hex_to_bytes;
 ///
 /// let bytes = hex_to_bytes("137acf").unwrap();
 /// assert_eq!(bytes, &[0x13, 0x7a, 0xcf]);

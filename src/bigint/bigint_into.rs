@@ -6,11 +6,11 @@
 
 use super::bigint_core::{BigInt, Sign};
 use super::bytes::be_digits_to_be_bytes;
-use crate::crypto::bytes_to_hex;
+use crate::crypto::codecs::bytes_to_hex;
 
 impl BigInt {
     /// Returns the hexadecimal representation.
-    pub(crate) fn to_hex(&self) -> String {
+    pub fn to_hex(&self) -> String {
         if self.is_zero() {
             return "0".to_string();
         }

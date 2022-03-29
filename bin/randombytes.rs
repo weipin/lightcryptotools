@@ -10,7 +10,7 @@
 //!
 //! cargo run --bin randombytes -- 16
 
-use lightcryptotools::crypto::bytes_to_hex;
+use lightcryptotools::crypto::codecs::bytes_to_hex;
 use lightcryptotools::random::get_os_random_bytes;
 
 fn main() {

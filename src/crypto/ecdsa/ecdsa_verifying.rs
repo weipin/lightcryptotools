@@ -6,11 +6,8 @@
 
 use crate::bigint::bigint_core::Sign;
 use crate::bigint::BigInt;
-use crate::crypto::ecdsa_core::EcdsaSignature;
-use crate::crypto::ecdsa_key::PublicKey;
-use crate::crypto::elliptic_curve_domain::EllipticCurveDomain;
-use ring::digest;
-use ring::digest::Algorithm;
+use crate::crypto::ecdsa::ecdsa_core::Signature;
+use crate::crypto::ecdsa::ecdsa_key::PublicKey;
 
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
@@ -19,26 +16,20 @@ pub enum EcdsaVerifyingError {
 }
 
 pub fn verify(
-    message: &[u8],
-    signature: &EcdsaSignature,
+    hash: &[u8],
+    signature: &Signature,
     public_key: &PublicKey,
-    curve_domain: EllipticCurveDomain,
-    algorithm: &'static Algorithm,
 ) -> Result<bool, EcdsaVerifyingError> {
     if !public_key.is_valid() {
         return Err(EcdsaVerifyingError::InvalidPublicKey);
     }
 
-    let mut context = digest::Context::new(algorithm);
-    context.update(message);
-    let digest = context.finish();
-    let hash = digest.as_ref();
     let hash_n = BigInt::from_be_bytes_with_max_bits_len(
         hash,
-        curve_domain.base_point_order.bit_len(),
+        public_key.curve_domain.base_point_order.bit_len(),
         Sign::Positive,
     );
 
-    let result = curve_domain.verify(signature, &hash_n, public_key);
+    let result = public_key.verify(&hash_n, signature);
     Ok(result)
 }

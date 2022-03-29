@@ -5,7 +5,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use devtools::path::integration_testing_data_path;
-use lightcryptotools::crypto::{secp256k1, PublicKey};
+use lightcryptotools::crypto::ecdsa::PublicKey;
+use lightcryptotools::crypto::secp256k1;
 use serde_json::Value;
 use std::fs::File;
 

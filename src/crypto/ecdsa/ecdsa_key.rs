@@ -4,9 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::elliptic_curve_domain::EllipticCurveDomain;
-use crate::bigint::bigint_core::BigInt;
-use crate::crypto::elliptic_curve_domain_key_encoding::EllipticCurveDomainKeyEncoding;
+use crate::bigint::BigInt;
+use crate::crypto::elliptic_curve_domain::{
+    EllipticCurveDomain, EllipticCurveDomainKeyEncoding,
+};
 use crate::crypto::sec1::{PointDecodingError, Sec1};
 use crate::math::elliptic_curve::Point;
 
@@ -33,7 +34,7 @@ impl PrivateKey<'_> {
 }
 
 impl PublicKey<'_> {
-    pub(crate) fn is_valid(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
         self.curve_domain.validate_point(&self.data)
     }
 }

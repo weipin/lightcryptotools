@@ -10,7 +10,7 @@ use super::bigint_core::{BigInt, Sign};
 use super::bigint_vec::DigitVec;
 use super::bytes::be_bytes_to_le_digits;
 use crate::bigint::len::len_digits;
-use crate::crypto::{hex_to_bytes, CodecsError};
+use crate::crypto::codecs::{hex_to_bytes, CodecsError};
 
 impl BigInt {
     /// Creates and initializes a `BigInt`.
@@ -96,11 +96,11 @@ impl BigInt {
         }
     }
 
-    pub(crate) fn zero() -> BigInt {
+    pub fn zero() -> BigInt {
         Self::from(0)
     }
 
-    pub(crate) fn one() -> BigInt {
+    pub fn one() -> BigInt {
         Self::from(1)
     }
 }

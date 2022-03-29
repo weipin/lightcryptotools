@@ -7,7 +7,8 @@
 use devtools::hex::decimal_to_hex;
 use devtools::path::integration_testing_data_path;
 use lightcryptotools::bigint::BigInt;
-use lightcryptotools::crypto::{secp256k1, PrivateKey, PublicKey};
+use lightcryptotools::crypto::ecdsa::{PrivateKey, PublicKey};
+use lightcryptotools::crypto::secp256k1;
 use serde_json::Value;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -45,10 +46,10 @@ fn test_public_key_from_hex_validating() {
     let path = integration_testing_data_path("crypto/secp256k1/noble-secp256k1/points.json");
     let file = File::open(path).unwrap();
     let root: Value = serde_json::from_reader(file).unwrap();
-    let is_point_vec = root["valid"]["isPoint"].as_array().unwrap();
-    for point_value in is_point_vec {
-        let p = point_value["P"].as_str().unwrap();
-        let expected = point_value["expected"].as_bool().unwrap();
+    let value_vec = root["valid"]["isPoint"].as_array().unwrap();
+    for value in value_vec {
+        let p = value["P"].as_str().unwrap();
+        let expected = value["expected"].as_bool().unwrap();
 
         let result = PublicKey::from_sec1_hex(p, secp256k1);
         assert_eq!(result.is_ok(), expected);
@@ -62,10 +63,10 @@ fn test_get_public_key_from_scalar() {
     let path = integration_testing_data_path("crypto/secp256k1/noble-secp256k1/points.json");
     let file = File::open(path).unwrap();
     let root: Value = serde_json::from_reader(file).unwrap();
-    let point_from_scalar_vec = root["valid"]["pointFromScalar"].as_array().unwrap();
-    for scalar_value in point_from_scalar_vec {
-        let d = scalar_value["d"].as_str().unwrap();
-        let expected = scalar_value["expected"].as_str().unwrap();
+    let value_vec = root["valid"]["pointFromScalar"].as_array().unwrap();
+    for value in value_vec {
+        let d = value["d"].as_str().unwrap();
+        let expected = value["expected"].as_str().unwrap();
 
         let private_key = PrivateKey {
             data: BigInt::from_hex(d).unwrap(),

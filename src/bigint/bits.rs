@@ -19,7 +19,7 @@ impl BigInt {
         self.digits_len * Digit::BITS as usize - most_significant_digit.leading_zeros() as usize
     }
 
-    pub(crate) fn bits(&self) -> Vec<bool> {
+    pub(crate) fn le_bits(&self) -> Vec<bool> {
         if self.is_zero() {
             return vec![];
         }
@@ -47,7 +47,6 @@ impl BigInt {
         }
 
         debug_assert_eq!(bits.len(), self.bit_len());
-        bits.reverse();
         bits
     }
 }

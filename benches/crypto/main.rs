@@ -2,4 +2,5 @@
 
 extern crate test;
 
-mod elliptic_curve;
+mod ecdsa;
+mod secp256k1;

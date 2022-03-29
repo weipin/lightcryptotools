@@ -5,7 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::bigint::bigint_core::{BigInt, Sign};
-use crate::crypto::ecdsa_key::PrivateKey;
+use crate::crypto::ecdsa::PrivateKey;
 use ring::hmac;
 use ring::hmac::Algorithm;
 
@@ -116,20 +116,20 @@ impl Rfc6979 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::crypto::ecdsa::PrivateKey;
     use crate::crypto::elliptic_curve_domain::EllipticCurveDomain;
-    use crate::crypto::PrivateKey;
     use ring::digest;
 
     #[test]
     fn test_generate_nonce() {
-        let q = BigInt::from_hex("4000000000000000000020108A2E0CC0D99F8A5EF").unwrap();
+        let q = BigInt::from_hex("4000000000000000000020108a2e0cc0d99f8a5ef").unwrap();
         let curve_domain = EllipticCurveDomain {
             base_point_order: q.clone(),
             ..Default::default()
         };
 
         let private_key = PrivateKey {
-            data: BigInt::from_hex("09A4D6792295A7F730FC3F2B49CBC0F62E862272F").unwrap(),
+            data: BigInt::from_hex("09a4d6792295a7f730fc3f2b49cbc0f62e862272f").unwrap(),
             curve_domain: &curve_domain,
         };
         let rfc6979 = Rfc6979::new(q);

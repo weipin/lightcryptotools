@@ -5,8 +5,9 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::bigint::bigint_core::BigInt;
-use crate::crypto::elliptic_curve_domain::EllipticCurveDomain;
-use crate::crypto::elliptic_curve_domain_key_encoding::EllipticCurveDomainKeyEncoding;
+use crate::crypto::elliptic_curve_domain::{
+    EllipticCurveDomain, EllipticCurveDomainKeyEncoding,
+};
 use crate::math::elliptic_curve::Point;
 use crate::math::modular::{modulo, sqrt};
 use std::fmt::{Display, Formatter};
@@ -170,7 +171,8 @@ impl EllipticCurveDomainKeyEncoding for Sec1 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::{secp256k1, PrivateKey, PublicKey};
+    use crate::crypto::ecdsa::{PrivateKey, PublicKey};
+    use crate::crypto::secp256k1::secp256k1;
     use crate::testing_tools::quickcheck::HexString;
     use quickcheck::{Gen, QuickCheck};
 
