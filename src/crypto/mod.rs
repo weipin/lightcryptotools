@@ -6,9 +6,10 @@
 
 pub mod codecs;
 pub mod ecdsa;
-mod elliptic_curve_domain;
+mod elliptic_curve_params;
 mod rfc6979;
 mod sec1;
 mod secp256k1;
 
+pub use elliptic_curve_params::EllipticCurveParams;
 pub use secp256k1::secp256k1;

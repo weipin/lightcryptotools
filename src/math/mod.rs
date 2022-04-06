@@ -6,3 +6,5 @@
 
 pub(crate) mod elliptic_curve;
 pub(crate) mod modular;
+
+pub use elliptic_curve::{Curve, Point};

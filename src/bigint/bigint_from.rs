@@ -54,6 +54,7 @@ macro_rules! test_from_int {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::crypto::codecs::CodecsError;
     use ::quickcheck_macros::quickcheck;
 
     #[test]
@@ -61,14 +62,12 @@ mod tests {
         let data = [
             ("", "0"),
             ("00", "0"),
-            ("0", "0"),
             ("79be66", "79be66"),
             (
                 "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
                 "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
             ),
             ("-00", "0"),
-            ("-0", "0"),
             ("-79be66", "-79be66"),
             (
                 "-79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
@@ -79,6 +78,19 @@ mod tests {
             let a = BigInt::from_hex(a_hex).unwrap();
 
             assert_eq!(a.to_hex(), output);
+        }
+    }
+
+    #[test]
+    fn test_from_hex_with_errors() {
+        let data = [
+            ("0", CodecsError::NotByteAligned),
+            ("79be661", CodecsError::NotByteAligned),
+            ("-0", CodecsError::NotByteAligned),
+            ("-0x79be66", CodecsError::InvalidCharFound),
+        ];
+        for (a_hex, err) in data {
+            assert_eq!(BigInt::from_hex(a_hex).unwrap_err(), err);
         }
     }
 

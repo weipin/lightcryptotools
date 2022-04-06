@@ -5,8 +5,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::bigint::bigint_core::BigInt;
-use crate::crypto::elliptic_curve_domain::{
-    EllipticCurveDomain, EllipticCurveDomainKeyEncoding,
+use crate::crypto::elliptic_curve_params::{
+    EllipticCurveDomainKeyEncoding, EllipticCurveParams,
 };
 use crate::math::elliptic_curve::Point;
 use crate::math::modular::{modulo, sqrt};
@@ -42,14 +42,14 @@ impl EllipticCurveDomainKeyEncoding for Sec1 {
     /// Decodes a Point as described in http://www.secg.org/SEC1-Ver-1.0.pdf,
     /// sections 2.3.3/2.3.4.
     ///
-    /// uncompressed: '4' + x + y
-    /// compressed:   '2'|'3' + x
+    /// uncompressed: '04' + x + y
+    /// compressed:   '02'|'03' + x
     fn decode_point<T: AsRef<[u8]>>(
         data: T,
-        curve_domain: &EllipticCurveDomain,
+        curve_params: &EllipticCurveParams,
     ) -> Result<Point, Box<dyn std::error::Error>> {
         let hex_bytes = data.as_ref();
-        let point_element_hex_len = curve_domain.base_point_order.byte_len() * 2;
+        let point_element_hex_len = curve_params.base_point_order.byte_len() * 2;
 
         if hex_bytes.len() < point_element_hex_len + 2 {
             return Err(Box::new(PointDecodingError::InvalidFormat));
@@ -77,7 +77,7 @@ impl EllipticCurveDomainKeyEncoding for Sec1 {
             };
 
             let point = Point { x, y };
-            if !curve_domain.validate_point(&point) {
+            if !curve_params.validate_point(&point) {
                 return Err(Box::new(PointDecodingError::InvalidPoint));
             }
 
@@ -98,10 +98,10 @@ impl EllipticCurveDomainKeyEncoding for Sec1 {
         };
 
         // y^2 = x^3 + a * x + b
-        let y_square = &x * &x * &x + &curve_domain.curve.a * &x + &curve_domain.curve.b;
-        let y_square = modulo(&y_square, &curve_domain.curve.p);
+        let y_square = &x * &x * &x + &curve_params.curve.a * &x + &curve_params.curve.b;
+        let y_square = modulo(&y_square, &curve_params.curve.p);
 
-        let (root1, root2) = match sqrt(&y_square, &curve_domain.curve.p) {
+        let (root1, root2) = match sqrt(&y_square, &curve_params.curve.p) {
             Some(roots) => roots,
             None => {
                 return Err(Box::new(PointDecodingError::YNotFound));
@@ -125,7 +125,7 @@ impl EllipticCurveDomainKeyEncoding for Sec1 {
         };
 
         let point = Point { x, y };
-        if !curve_domain.validate_point(&point) {
+        if !curve_params.validate_point(&point) {
             return Err(Box::new(PointDecodingError::InvalidPoint));
         }
 
@@ -139,19 +139,19 @@ impl EllipticCurveDomainKeyEncoding for Sec1 {
     /// compressed:   '2'|'3' + x
     ///
     /// This method assumes that the caller has made sure `point` is legitimate,
-    /// it does not validate `point` against `curve_domain`.
+    /// it does not validate `point` against `curve_params`.
     ///
     /// Both elements of `point` must be in the range (> 0 and < base_point_order),
     /// otherwise this function will panic.
     fn encode_point(
         point: &Point,
-        curve_domain: &EllipticCurveDomain,
+        curve_params: &EllipticCurveParams,
         compressed: bool,
     ) -> String {
-        assert!(point.x > BigInt::zero() && point.x < curve_domain.base_point_order);
-        assert!(point.y > BigInt::zero() && point.y < curve_domain.base_point_order);
+        assert!(point.x > BigInt::zero() && point.x < curve_params.base_point_order);
+        assert!(point.y > BigInt::zero() && point.y < curve_params.base_point_order);
 
-        let hex_len = curve_domain.base_point_order.byte_len() * 2;
+        let hex_len = curve_params.base_point_order.byte_len() * 2;
         if compressed {
             if point.y.is_even() {
                 let x_hex = point.x.to_hex();
@@ -449,7 +449,7 @@ mod tests {
                 ),
                 Point {
                     x: BigInt::from_hex("42c8").unwrap(),
-                    y: BigInt::from_hex("dce7f").unwrap(),
+                    y: BigInt::from_hex("0dce7f").unwrap(),
                 },
                 false,
             ),
@@ -507,10 +507,8 @@ mod tests {
 
         fn prop(d_hex: HexString) -> bool {
             let secp256k1 = secp256k1();
-            let private_key = PrivateKey {
-                data: BigInt::from_hex(&d_hex.0).unwrap(),
-                curve_domain: secp256k1,
-            };
+            let private_key =
+                PrivateKey::new(BigInt::from_hex(&d_hex.0).unwrap(), secp256k1).unwrap();
             if private_key.data.is_zero() {
                 return true; // ignore
             }

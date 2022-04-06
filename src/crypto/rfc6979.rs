@@ -9,8 +9,12 @@ use crate::crypto::ecdsa::PrivateKey;
 use ring::hmac;
 use ring::hmac::Algorithm;
 
+// Generate k with extra random data.
+// https://link.springer.com/chapter/10.1007/978-3-319-44524-3_11
+// https://github.com/openssl/openssl/commit/190c615d4398cc6c8b61eb7881d7409314529a75
+
 pub(crate) struct Rfc6979 {
-    // Base point order of the elliptic curve domain.
+    // Base point order of the elliptic curve domain parameters.
     q: BigInt,
 
     // Binary length of `q`.
@@ -34,7 +38,7 @@ impl Rfc6979 {
         private_key: &PrivateKey,
         algorithm: &'static Algorithm,
     ) -> BigInt {
-        assert_eq!(self.q, private_key.curve_domain.base_point_order);
+        assert_eq!(self.q, private_key.curve_params.base_point_order);
 
         let hash_size = algorithm.digest_algorithm().output_len;
 
@@ -117,21 +121,22 @@ impl Rfc6979 {
 mod tests {
     use super::*;
     use crate::crypto::ecdsa::PrivateKey;
-    use crate::crypto::elliptic_curve_domain::EllipticCurveDomain;
+    use crate::crypto::elliptic_curve_params::EllipticCurveParams;
     use ring::digest;
 
     #[test]
     fn test_generate_nonce() {
-        let q = BigInt::from_hex("4000000000000000000020108a2e0cc0d99f8a5ef").unwrap();
-        let curve_domain = EllipticCurveDomain {
+        let q = BigInt::from_hex("04000000000000000000020108a2e0cc0d99f8a5ef").unwrap();
+        let curve_params = EllipticCurveParams {
             base_point_order: q.clone(),
             ..Default::default()
         };
 
-        let private_key = PrivateKey {
-            data: BigInt::from_hex("09a4d6792295a7f730fc3f2b49cbc0f62e862272f").unwrap(),
-            curve_domain: &curve_domain,
-        };
+        let private_key = PrivateKey::new(
+            BigInt::from_hex("009a4d6792295a7f730fc3f2b49cbc0f62e862272f").unwrap(),
+            &curve_params,
+        )
+        .unwrap();
         let rfc6979 = Rfc6979::new(q);
 
         let message = b"sample";

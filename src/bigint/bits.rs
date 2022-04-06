@@ -10,7 +10,7 @@ use crate::bigint::digit::Digit;
 impl BigInt {
     /// Returns the number of bits representing the big integer.
     /// 0 is returned for the value zero.
-    pub(crate) fn bit_len(&self) -> usize {
+    pub fn bit_len(&self) -> usize {
         if self.is_zero() {
             return 0;
         }

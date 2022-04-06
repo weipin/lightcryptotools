@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use std::borrow::Cow;
 use std::str::from_utf8;
 use num_bigint::BigUint;
 use quickcheck::Gen;
@@ -26,6 +27,17 @@ pub fn decimal_to_hex(decimal: &str) -> String {
     format!("{:x}", a)
 }
 
+pub fn byte_aligned_hex(hex: &str) -> Cow<str> {
+    if hex.len() & 1 == 0 {
+        hex.into()
+    } else {
+        let mut t = String::with_capacity(hex.len() + 1);
+        t.push('0');
+        t.push_str(hex);
+        t.into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -36,5 +48,19 @@ mod tests {
         let hex = "7561967ae7e35552012b5778030b36a39b62dfe899bb9edbbc57344e94f22db0";
 
         assert_eq!(decimal_to_hex(decimal), hex);
+    }
+
+    #[test]
+    fn test_byte_aligned_hex() {
+        let data = [
+            ("00", "00"),
+            ("1", "01"),
+            ("zzz", "0zzz"),
+            ("zz", "zz"),
+        ];
+
+        for (s1, s2) in data {
+            assert_eq!(byte_aligned_hex(s1), s2);
+        }
     }
 }

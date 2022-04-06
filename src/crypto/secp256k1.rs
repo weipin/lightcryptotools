@@ -4,17 +4,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::elliptic_curve_domain::EllipticCurveDomain;
+use super::elliptic_curve_params::EllipticCurveParams;
 use crate::bigint::BigInt;
 use crate::math::elliptic_curve::{Curve, Point};
 use std::sync::Once;
 
-static mut SECP256K1: Option<EllipticCurveDomain> = None;
+static mut SECP256K1: Option<EllipticCurveParams> = None;
 static INIT: Once = Once::new();
 
-pub fn secp256k1() -> &'static EllipticCurveDomain {
+pub fn secp256k1() -> &'static EllipticCurveParams {
     INIT.call_once(|| unsafe {
-        let domain = EllipticCurveDomain {
+        let curve_params = EllipticCurveParams {
             curve: Curve {
                 a: BigInt::from(0),
                 b: BigInt::from(7),
@@ -39,9 +39,9 @@ pub fn secp256k1() -> &'static EllipticCurveDomain {
             .unwrap(),
             cofactor: 1,
         };
-        SECP256K1 = Some(domain);
+        SECP256K1 = Some(curve_params);
     });
 
-    let domain = unsafe { SECP256K1.as_ref().unwrap() };
-    domain
+    let params = unsafe { SECP256K1.as_ref().unwrap() };
+    params
 }

@@ -52,8 +52,8 @@ mod tests {
             (BigInt::from(-1), "-1"),
             (BigInt::from(i8::MIN), "-80"),
             (BigInt::from_hex("").unwrap(), "0"),
-            (BigInt::from_hex("-0").unwrap(), "0"),
-            (BigInt::from_hex("+0").unwrap(), "0"),
+            (BigInt::from_hex("-00").unwrap(), "0"),
+            (BigInt::from_hex("+00").unwrap(), "0"),
         ];
 
         for (a, output) in data {

@@ -54,9 +54,9 @@ pub(crate) fn be_bytes_to_be_digits(bytes: &[u8]) -> Vec<Digit> {
         let mut bytes = bytes.to_vec();
         bytes.extend(vec![0; extend_n]);
         bytes.rotate_right(extend_n); // e.g., 123 => 0123
-        Cow::Owned(bytes)
+        bytes.into()
     } else {
-        Cow::Borrowed(bytes)
+        bytes.into()
     };
 
     let mut digits = Vec::with_capacity(bytes.len() / DIGIT_BYTES as usize);

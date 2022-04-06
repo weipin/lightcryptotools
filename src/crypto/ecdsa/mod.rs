@@ -11,5 +11,5 @@ pub(crate) mod ecdsa_verifying;
 
 pub use ecdsa_core::Signature;
 pub use ecdsa_key::{PrivateKey, PublicKey};
-pub use ecdsa_signing::{sign, sign_with_options, SigningOptions};
-pub use ecdsa_verifying::verify;
+pub use ecdsa_signing::*;
+pub use ecdsa_verifying::*;

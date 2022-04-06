@@ -10,10 +10,10 @@ use crate::bigint::BigInt;
 /// A curve "y^2 = x^3 + a * x + b"
 /// with respect to the integers modulo `p`.
 #[derive(Debug, PartialEq)]
-pub(crate) struct Curve {
-    pub(crate) a: BigInt,
-    pub(crate) b: BigInt,
-    pub(crate) p: BigInt,
+pub struct Curve {
+    pub a: BigInt,
+    pub b: BigInt,
+    pub p: BigInt,
 }
 
 impl Curve {
@@ -23,8 +23,8 @@ impl Curve {
 
     /// Adds `a` to itself.
     fn double_point(&self, a: &Point) -> Point {
-        debug_assert!(a.x >= BigInt::zero());
-        debug_assert!(a.y >= BigInt::zero());
+        debug_assert!(a.x >= BigInt::zero() && a.x < self.p);
+        debug_assert!(a.y >= BigInt::zero() && a.y < self.p);
 
         if a.is_identity_element() {
             return Point::identity_element();
@@ -50,10 +50,10 @@ impl Curve {
 
     /// Adds point `a` to point `b`.
     pub(crate) fn add_points(&self, a: &Point, b: &Point) -> Point {
-        debug_assert!(a.x >= BigInt::zero());
-        debug_assert!(a.y >= BigInt::zero());
-        debug_assert!(b.x >= BigInt::zero());
-        debug_assert!(b.y >= BigInt::zero());
+        debug_assert!(a.x >= BigInt::zero() && a.x < self.p);
+        debug_assert!(a.y >= BigInt::zero() && a.y < self.p);
+        debug_assert!(b.x >= BigInt::zero() && b.x < self.p);
+        debug_assert!(b.y >= BigInt::zero() && b.y < self.p);
 
         // O + O = O
         if a.is_identity_element() && b.is_identity_element() {
@@ -229,5 +229,29 @@ mod tests {
                 true
             )
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_adding_point_with_x_greater_than_p_should_panic() {
+        // secp256k1 curve
+        let curve = Curve {
+            a: BigInt::from(0),
+            b: BigInt::from(7),
+            p: BigInt::from_hex(
+                "fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f",
+            )
+            .unwrap(),
+        };
+
+        let xs = BigInt::one();
+        let xt = &curve.p + BigInt::one();
+        let ys = BigInt::one();
+        let point1 = Point {
+            x: xs,
+            y: ys.clone(),
+        };
+        let point2 = Point { x: xt, y: ys };
+        curve.add_points(&point1, &point2);
     }
 }

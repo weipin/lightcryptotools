@@ -10,10 +10,7 @@ fn public_key_from_private(bench: &mut Bencher) {
 
     let bytes_len = 32;
     let n = BigInt::from_hex(random_hex(bytes_len * 2).as_str()).unwrap();
-    let private_key = PrivateKey {
-        data: n,
-        curve_domain: secp256k1,
-    };
+    let private_key = PrivateKey::new(n, secp256k1).unwrap();
 
     bench.iter(|| {
         let _ = private_key.public_key();

@@ -11,29 +11,41 @@ use crate::crypto::ecdsa::ecdsa_key::PrivateKey;
 use crate::crypto::rfc6979::Rfc6979;
 use ring::hmac;
 
-pub fn sign<'a>(hash: &[u8], private_key: &'a PrivateKey<'a>) -> Signature<'a> {
+#[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub enum SigningError {}
+
+pub fn sign<'a>(
+    hash: &[u8],
+    private_key: &'a PrivateKey,
+) -> Result<Signature<'a>, SigningError> {
     sign_with_options(hash, private_key, &SigningOptions::default())
 }
 
 pub fn sign_with_options<'a>(
     hash: &[u8],
-    private_key: &'a PrivateKey<'a>,
+    private_key: &'a PrivateKey,
     options: &SigningOptions,
-) -> Signature<'a> {
+) -> Result<Signature<'a>, SigningError> {
+    assert!(private_key.is_valid());
+
+    // SEC1: truncates the hash to the bit-length of the curve base point order.
     let hash_n = BigInt::from_be_bytes_with_max_bits_len(
         hash,
-        private_key.curve_domain.base_point_order.bit_len(),
+        private_key.curve_params.base_point_order.bit_len(),
         Sign::Positive,
     );
 
-    let rfc6979 = Rfc6979::new(private_key.curve_domain.base_point_order.clone());
+    let rfc6979 = Rfc6979::new(private_key.curve_params.base_point_order.clone());
     loop {
+        // TODO: Fix the Minerva vulnerability
+        // https://minerva.crocs.fi.muni.cz/
         let k = rfc6979.generate_nonce(hash, private_key, options.hmac_hash_algorithm);
         if let Some(signature) = private_key.sign(&hash_n, &k) {
             return if options.enforce_low_s {
-                signature.to_low_s_signature()
+                Ok(signature.to_low_s_signature())
             } else {
-                signature
+                Ok(signature)
             };
         }
     }
@@ -49,63 +61,6 @@ impl Default for SigningOptions {
         Self {
             hmac_hash_algorithm: &hmac::HMAC_SHA256,
             enforce_low_s: true,
-        }
-    }
-}
-
-impl<'a> Signature<'a> {
-    /// Returns a signature and ensures its `s` is at most the curve order divided by 2,
-    /// (essentially restricting this value to its lower half range).
-    ///
-    /// For "low s" details see [BIP: 146][1]
-    /// [1]: https://github.com/bitcoin/bips/blob/master/bip-0146.mediawiki
-    fn to_low_s_signature(&self) -> Signature<'a> {
-        if self.s > (&self.curve_domain.base_point_order >> 1) {
-            return Signature {
-                r: self.r.clone(),
-                s: (&self.curve_domain.base_point_order - &self.s),
-                curve_domain: self.curve_domain,
-            };
-        }
-
-        self.clone()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::crypto::secp256k1;
-
-    #[test]
-    fn test_to_low_s_signature() {
-        // For secp256k1
-        // low s in [0x1, 0x7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0]
-        let secp256k1 = secp256k1();
-        let curve_order_half = BigInt::from_hex(
-            "7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0",
-        )
-        .unwrap();
-        // s1, s2
-        let data = [
-            (BigInt::one(), BigInt::one()),
-            (curve_order_half.clone(), curve_order_half.clone()),
-            (
-                &curve_order_half + BigInt::one(),
-                BigInt::from_hex(
-                    "7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0",
-                )
-                .unwrap(),
-            ),
-        ];
-
-        for (s1, s2) in data {
-            let signature = Signature {
-                r: BigInt::zero(),
-                s: s1,
-                curve_domain: secp256k1,
-            };
-            assert_eq!(signature.to_low_s_signature().s, s2);
         }
     }
 }

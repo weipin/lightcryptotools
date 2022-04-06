@@ -163,7 +163,7 @@ impl Display for CodecsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CodecsError::InvalidCharFound => write!(f, "Invalid char found"),
-            CodecsError::NotByteAligned => write!(f, "Not byte aligned"),
+            CodecsError::NotByteAligned => write!(f, "Not 1-byte aligned"),
         }
     }
 }

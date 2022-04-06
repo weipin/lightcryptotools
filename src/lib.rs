@@ -6,7 +6,7 @@
 
 pub mod bigint;
 pub mod crypto;
-mod math;
+pub mod math;
 mod os;
 pub mod random;
 mod tools;

@@ -33,6 +33,7 @@ impl BigInt {
     }
 
     /// Creates a `BigInt` from hexadecimal representation `hex`.
+    /// `hex` must be 1-byte aligned, that is `hex` must have an even number of digits.
     pub fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<BigInt, CodecsError> {
         let hex = hex.as_ref();
         if hex.is_empty() {
@@ -50,16 +51,7 @@ impl BigInt {
             return Err(CodecsError::InvalidCharFound);
         }
 
-        // Padding for byte alignment (e.g., 1 => 01).
-        let bytes = if hex.len() & 1 == 0 {
-            hex_to_bytes(hex)?
-        } else {
-            let mut t = Vec::with_capacity(hex.len() + 1);
-            t.push(b'0');
-            t.extend_from_slice(hex);
-            hex_to_bytes(&t)?
-        };
-
+        let bytes = hex_to_bytes(hex)?;
         Ok(Self::from_be_bytes(&bytes, sign))
     }
 

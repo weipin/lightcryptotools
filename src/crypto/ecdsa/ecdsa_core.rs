@@ -7,57 +7,97 @@
 use crate::bigint::bigint_core::Sign;
 use crate::bigint::BigInt;
 use crate::crypto::ecdsa::ecdsa_key::{PrivateKey, PublicKey};
-use crate::crypto::elliptic_curve_domain::EllipticCurveDomain;
+use crate::crypto::elliptic_curve_params::EllipticCurveParams;
 use crate::math::modular::{invert, modulo};
 
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub struct Signature<'a> {
     pub r: BigInt,
     pub s: BigInt,
-    pub curve_domain: &'a EllipticCurveDomain,
+    pub curve_params: &'a EllipticCurveParams,
 }
 
-impl Signature<'_> {
-    pub fn to_hex(&self) -> String {
-        assert!(self.r < self.curve_domain.base_point_order);
-        assert!(self.s < self.curve_domain.base_point_order);
+impl<'a> Signature<'a> {
+    pub fn new(r: BigInt, s: BigInt, curve_params: &'a EllipticCurveParams) -> Option<Self> {
+        let signature = Signature { r, s, curve_params };
+        if signature.is_valid() {
+            Some(signature)
+        } else {
+            None
+        }
+    }
 
-        let hex_len = self.curve_domain.base_point_order.byte_len() * 2;
+    pub(crate) fn is_valid(&self) -> bool {
+        (self.r > BigInt::zero() && self.r < self.curve_params.base_point_order)
+            && (self.s > BigInt::zero() && self.s < self.curve_params.base_point_order)
+    }
+
+    /// Returns the hexadecimal representation of the 64 bytes for r and s concatenated with each other.
+    /// The first 64 hexadecimal digits is r, the second is s.
+    ///
+    /// For r or s with byte length less than 32, the hexadecimal representation is leading zero padded.
+    pub fn to_compact_hex(&self) -> String {
+        assert!(self.is_valid());
+
+        let hex_len = self.curve_params.base_point_order.byte_len() * 2;
         let r_hex = self.r.to_hex();
         let s_hex = self.s.to_hex();
 
         format!("{r_hex:0>hex_len$}{s_hex:0>hex_len$}")
     }
+
+    pub(crate) fn is_low_s_signature(&self) -> bool {
+        self.s <= (&self.curve_params.base_point_order >> 1)
+    }
+
+    /// Returns a signature and ensures its `s` is at most the curve order divided by 2,
+    /// (essentially restricting this value to its lower half range).
+    ///
+    /// For "low s" details see [BIP: 146][1]
+    /// [1]: https://github.com/bitcoin/bips/blob/master/bip-0146.mediawiki
+    pub(crate) fn to_low_s_signature(&self) -> Signature<'a> {
+        if !self.is_low_s_signature() {
+            return Signature::new(
+                self.r.clone(),
+                &self.curve_params.base_point_order - &self.s,
+                self.curve_params,
+            )
+            .unwrap();
+        }
+
+        self.clone()
+    }
 }
 
 impl PrivateKey<'_> {
-    /// Generates a ECDSA signature of `hash_n` with `private_key`.
+    /// Generates a ECDSA signature of `hash` with `private_key`.
     /// `k` is a random number between 1 and n – 1.
     ///
     /// Returns None if either element of the signature (`r` or `s`) is zero.
-    pub(crate) fn sign(&self, hash_n: &BigInt, k: &BigInt) -> Option<Signature> {
-        assert!(hash_n.bit_len() <= self.curve_domain.base_point_order.bit_len());
+    pub(crate) fn sign(&self, hash: &BigInt, k: &BigInt) -> Option<Signature> {
+        assert!(hash.bit_len() <= self.curve_params.base_point_order.bit_len());
 
         // `k` in [1, n - 1]
         // n: base point order
-        assert!(k > &BigInt::zero() && k < &self.curve_domain.base_point_order);
+        assert!(k > &BigInt::zero() && k < &self.curve_params.base_point_order);
 
-        let curve_domain = self.curve_domain;
-        let kg = curve_domain.curve.mul_point(&curve_domain.base_point, k);
+        let curve_params = self.curve_params;
+        let kg = curve_params.curve.mul_point(&curve_params.base_point, k);
         let r = kg.x;
-        let r = modulo(&r, &curve_domain.base_point_order);
+        let r = modulo(&r, &curve_params.base_point_order);
         if r.is_zero() {
             return None;
         }
 
         // s = (h + rd) / k mod p
-        let s = (hash_n + &r * &self.data) * invert(k, &curve_domain.base_point_order);
-        let s = modulo(&s, &curve_domain.base_point_order);
+        let s = (hash + &r * &self.data) * invert(k, &curve_params.base_point_order);
+        let s = modulo(&s, &curve_params.base_point_order);
         if s.is_zero() {
             return None;
         }
 
-        Some(Signature { r, s, curve_domain })
+        Some(Signature::new(r, s, curve_params).unwrap())
     }
 }
 
@@ -65,50 +105,62 @@ impl PublicKey<'_> {
     /// Verifies the ECDSA `signature` of `hash`.
     /// This method assumes that the caller has made sure `public_key` is legitimate,
     /// it does not validate `public_key`.
-    pub(crate) fn verify(&self, hash_n: &BigInt, signature: &Signature) -> bool {
-        let curve_domain = self.curve_domain;
+    pub(crate) fn verify(&self, hash: &BigInt, signature: &Signature) -> bool {
+        assert!(hash.bit_len() <= self.curve_params.base_point_order.bit_len());
+
+        let curve_params = self.curve_params;
 
         // w = 1 / s mod n
         // n: base point order
-        let w = invert(&signature.s, &curve_domain.base_point_order);
+        let w = invert(&signature.s, &curve_params.base_point_order);
 
         // u = wh mod n
-        let u = &w * hash_n;
-        let u = modulo(&u, &curve_domain.base_point_order);
+        let u = &w * hash;
+        let u = modulo(&u, &curve_params.base_point_order);
 
         // v = wr mod n
         let v = &w * &signature.r;
-        let v = modulo(&v, &curve_domain.base_point_order);
+        let v = modulo(&v, &curve_params.base_point_order);
 
         // Q = uG + vP
-        let ug = curve_domain.curve.mul_point(&curve_domain.base_point, &u);
-        let vp = curve_domain.curve.mul_point(&self.data, &v);
-        let q = curve_domain.curve.add_points(&ug, &vp);
-        let qx = modulo(&q.x, &curve_domain.base_point_order);
+        let ug = curve_params.curve.mul_point(&curve_params.base_point, &u);
+        let vp = curve_params.curve.mul_point(&self.data, &v);
+        let q = curve_params.curve.add_points(&ug, &vp);
+        let qx = modulo(&q.x, &curve_params.base_point_order);
 
         qx == signature.r
     }
 }
 
 impl BigInt {
+    /// Converts up to `max_bits_len` leading bits of `bytes` to an integer.
     pub(crate) fn from_be_bytes_with_max_bits_len(
         bytes: &[u8],
         max_bits_len: usize,
         sign: Sign,
     ) -> BigInt {
-        let mut n = BigInt::from_be_bytes(bytes, sign);
-        let n_bit_len = n.bit_len();
-        if n_bit_len > max_bits_len {
-            n = n >> (n_bit_len - max_bits_len);
+        debug_assert!(max_bits_len > 0);
+
+        if bytes.len() * 8 <= max_bits_len {
+            return BigInt::from_be_bytes(bytes, sign);
         }
-        n
+
+        let bytes_len = max_bits_len / 8;
+        let bits_remaining_len = max_bits_len % 8;
+        if bits_remaining_len == 0 {
+            BigInt::from_be_bytes(&bytes[0..bytes_len], sign)
+        } else {
+            let mut n = BigInt::from_be_bytes(&bytes[0..=bytes_len], sign);
+            n = n >> (8 - bits_remaining_len);
+            n
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::elliptic_curve_domain::EllipticCurveDomain;
+    use crate::crypto::elliptic_curve_params::EllipticCurveParams;
     use crate::crypto::secp256k1;
     use crate::math::elliptic_curve::{Curve, Point};
     use crate::testing_tools::quickcheck::HexString;
@@ -129,36 +181,137 @@ mod tests {
             y: BigInt::from(1),
         };
         let base_point_order = BigInt::from(19);
-        let domain = EllipticCurveDomain {
+        let curve_params = EllipticCurveParams {
             curve,
             base_point,
             base_point_order,
             cofactor: 1,
         };
 
-        let private_key = PrivateKey {
-            data: BigInt::from(7),
-            curve_domain: &domain,
-        };
+        let private_key = PrivateKey::new(BigInt::from(7), &curve_params).unwrap();
         let public_key = private_key.public_key();
         assert_eq!(
             public_key,
-            PublicKey {
-                data: Point {
+            PublicKey::new(
+                Point {
                     x: BigInt::zero(),
                     y: BigInt::from(6)
                 },
-                curve_domain: &domain
-            }
+                &curve_params
+            )
+            .unwrap()
         );
 
-        let hash = modulo(&BigInt::from(26), &domain.base_point_order);
+        let hash = modulo(&BigInt::from(26), &curve_params.base_point_order);
         let k = BigInt::from(10);
         let signature = private_key.sign(&hash, &k).unwrap();
         assert_eq!(signature.r, BigInt::from(7));
         assert_eq!(signature.s, BigInt::from(17));
 
         assert_eq!(public_key.verify(&hash, &signature), true);
+    }
+
+    #[test]
+    fn test_to_compact_hex() {
+        let secp256k1 = secp256k1();
+        let data = [
+            (
+                &Signature::new(BigInt::one(), BigInt::from(2), secp256k1).unwrap(),
+                concat!(
+                    "0000000000000000000000000000000000000000000000000000000000000001",
+                    "0000000000000000000000000000000000000000000000000000000000000002"
+                ),
+            ),
+            (
+                &Signature::new(
+                    BigInt::from_hex(
+                        "fbe907aac2bd7cd0ce3711f644235486367bdca4b87f19f76a7935fa00c6d169",
+                    )
+                    .unwrap(),
+                    BigInt::from_hex(
+                        "7f16095dd8cb6a4da57da25e3a3178665513e12c7b4dc52f2c212d250eef6407",
+                    )
+                    .unwrap(),
+                    secp256k1,
+                )
+                .unwrap(),
+                concat!(
+                    "fbe907aac2bd7cd0ce3711f644235486367bdca4b87f19f76a7935fa00c6d169",
+                    "7f16095dd8cb6a4da57da25e3a3178665513e12c7b4dc52f2c212d250eef6407"
+                ),
+            ),
+        ];
+        for (signature, signature_hex) in data {
+            assert_eq!(signature.to_compact_hex(), signature_hex);
+        }
+    }
+
+    #[test]
+    fn test_to_low_s_signature() {
+        // For secp256k1
+        // low s in [0x1, 0x7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0]
+        let secp256k1 = secp256k1();
+        let curve_order_half = BigInt::from_hex(
+            "7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0",
+        )
+        .unwrap();
+
+        // s1, s2
+        let data = [
+            (BigInt::one(), BigInt::one()),
+            (curve_order_half.clone(), curve_order_half.clone()),
+            (
+                &curve_order_half + BigInt::one(),
+                BigInt::from_hex(
+                    "7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0",
+                )
+                .unwrap(),
+            ),
+        ];
+
+        for (s1, s2) in data {
+            let signature = Signature::new(BigInt::one(), s1, secp256k1).unwrap();
+            assert_eq!(signature.to_low_s_signature().s, s2);
+        }
+    }
+
+    #[test]
+    fn test_ecdsa_secp256k1_signing_and_verifying_common() {
+        let secp256k1 = secp256k1();
+
+        let hash_hex = "4b688df40bcedbe641ddb16ff0a1842d9c67ea1c3bf63f3e0471baa664531d1a";
+        let d_hex = "ebb2c082fd7727890a28ac82f6bdf97bad8de9f5d7c9028692de1a255cad3e0f";
+        // this `k` isn't deterministic but a random number
+        let k_hex = "49a0d7b786ec9cde0d0721d72804befd06571c974b191efb42ecf322ba9ddd9a";
+        let signature_hex = concat!(
+            "241097efbf8b63bf145c8961dbdf10c310efbb3b2676bbc0f8b08505c9e2f795",
+            "021006b7838609339e8b415a7f9acb1b661828131aef1ecbc7955dfb01f3ca0e"
+        );
+
+        let d = BigInt::from_hex(d_hex).unwrap();
+        let private_key = PrivateKey::new(d.clone(), secp256k1).unwrap();
+        let public_key = private_key.public_key();
+        let hash_n = BigInt::from_hex(hash_hex).unwrap();
+        let k = BigInt::from_hex(k_hex).unwrap();
+        let signature = private_key.sign(&hash_n, &k).unwrap();
+
+        // sign and verify
+        let hex = signature.to_compact_hex();
+        assert_eq!(hex, signature_hex);
+        assert!(public_key.verify(&hash_n, &signature));
+
+        // verifying should fail with wrong public key
+        let wrong_private_key = PrivateKey::new(&d + BigInt::one(), secp256k1).unwrap();
+        let wrong_public_key = wrong_private_key.public_key();
+        assert!(!wrong_public_key.verify(&hash_n, &signature));
+
+        // verifying should fail with wrong hash
+        assert!(!public_key.verify(&(&hash_n + BigInt::one()), &signature));
+
+        // verifying should fail with wrong signature
+        let wrong_signature =
+            Signature::new(BigInt::from(2), BigInt::from(2), secp256k1).unwrap();
+        assert!(!public_key.verify(&hash_n, &wrong_signature));
     }
 
     #[test]
@@ -170,10 +323,8 @@ mod tests {
             let secp256k1 = secp256k1();
 
             let hash_n = BigInt::from_hex(&h_hex.0).unwrap();
-            let private_key = PrivateKey {
-                data: BigInt::from_hex(&d_hex.0).unwrap(),
-                curve_domain: secp256k1,
-            };
+            let private_key =
+                PrivateKey::new(BigInt::from_hex(&d_hex.0).unwrap(), secp256k1).unwrap();
             if private_key.data.is_zero() {
                 return true; // ignore
             }
@@ -197,30 +348,56 @@ mod tests {
     }
 
     #[test]
-    fn test_ecdsa_secp256k1_signing_cases() {
-        let secp256k1 = secp256k1();
+    fn test_from_be_bytes_with_max_bits_len() {
+        #[rustfmt::skip]
+        let data = [
+            (&[u8::MAX][..], 17, BigInt::from(255)),
+            (&[u8::MAX][..], 16, BigInt::from(255)),
+            (&[u8::MAX][..], 15, BigInt::from(255)),
+            (&[u8::MAX][..], 8, BigInt::from(255)),
+            (&[u8::MAX][..], 7, BigInt::from(255 >> 1)),
+            (&[u8::MAX][..], 6, BigInt::from(255 >> 2)),
+            (&[u8::MAX][..], 5, BigInt::from(255 >> 3)),
+            (&[u8::MAX][..], 4, BigInt::from(255 >> 4)),
+            (&[u8::MAX][..], 3, BigInt::from(255 >> 5)),
+            (&[u8::MAX][..], 2, BigInt::from(255 >> 6)),
+            (&[u8::MAX][..], 1, BigInt::from(255 >> 7)),
+            (&[1_u8][..], 1, BigInt::from(0)),
+            (&[1_u8][..], 5, BigInt::from(0)),
+            (&[1_u8][..], 7, BigInt::from(0)),
+            (&[1_u8][..], 8, BigInt::from(1)),
+            (&[1_u8][..], 9, BigInt::from(1)),
+            (&[128_u8, 1][..], 1, BigInt::from(1)),
+            (&[128_u8, 1][..], 3, BigInt::from(1 << 2)),
+            (&[128_u8, 1][..], 5, BigInt::from(1 << 4)),
+            (&[128_u8, 1][..], 7, BigInt::from(1 << 6)),
+            (&[128_u8, 1][..], 8, BigInt::from(1 << 7)),
+            (&[128_u8, 1][..], 9, BigInt::from(256)),
+            (&[128_u8, 1][..], 10, BigInt::from(256 << 1)),
+            (&[128_u8, 1][..], 12, BigInt::from(256 << 3)),
+            (&[128_u8, 1][..], 14, BigInt::from(256 << 5)),
+            (&[128_u8, 1][..], 15, BigInt::from(256 << 6)),
+            (&[128_u8, 1][..], 16, BigInt::from((256 << 7) + 1)),
+            (&[128_u8, 1][..], 17, BigInt::from((256 << 7) + 1)),
+            (&[
+                0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 1_u8,
+            ][..], 256, BigInt::from(1)),
+            (&[
+                0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 1_u8, 66,
+            ][..], 256, BigInt::from(1)),
+        ];
 
-        // (hash, d, k, signature)
-        let data = [(
-            "4b688df40bcedbe641ddb16ff0a1842d9c67ea1c3bf63f3e0471baa664531d1a",
-            "ebb2c082fd7727890a28ac82f6bdf97bad8de9f5d7c9028692de1a255cad3e0f",
-            "49a0d7b786ec9cde0d0721d72804befd06571c974b191efb42ecf322ba9ddd9a", // this `k` isn't deterministic but a random number
-            concat!(
-                "241097efbf8b63bf145c8961dbdf10c310efbb3b2676bbc0f8b08505c9e2f795",
-                "021006b7838609339e8b415a7f9acb1b661828131aef1ecbc7955dfb01f3ca0e"
-            ),
-        )];
-        for (hash_hex, d_hex, k_hex, signature_hex) in data {
-            let private_key = PrivateKey {
-                data: BigInt::from_hex(d_hex).unwrap(),
-                curve_domain: secp256k1,
-            };
-            let hash_d = BigInt::from_hex(hash_hex).unwrap();
-            let k = BigInt::from_hex(k_hex).unwrap();
-            let signature = private_key.sign(&hash_d, &k).unwrap();
-
-            let hex = signature.to_hex();
-            assert_eq!(hex, signature_hex);
+        for (bytes, max_bits_len, n) in data {
+            assert_eq!(
+                BigInt::from_be_bytes_with_max_bits_len(bytes, max_bits_len, Sign::Positive),
+                n
+            );
         }
     }
 }

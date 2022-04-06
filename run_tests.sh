@@ -6,6 +6,8 @@ cargo nextest run
 # Tests time-consuming cases
 cargo test --release -- --ignored
 
+# cargo bench
+
 # Tests bigint for u8_digit
 RUSTFLAGS="--cfg u8_digit" cargo nextest run bigint
 
