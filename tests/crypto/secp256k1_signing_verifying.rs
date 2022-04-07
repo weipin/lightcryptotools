@@ -75,7 +75,7 @@ fn test_verify_non_strict_msg_bb5a() {
 
 #[test]
 fn test_sign_hash_greater_than_base_point_order() {
-    // For the purpose of this test, see `test_match_secp256k1_fix_1063`.
+    // To learn the purpose of this test, see `test_match_secp256k1_fix_1063`.
     //
     // openssl doesn't support "deterministic k"(RFC 6979) ECDSA signing.
     // Uses Python package fastecdsa to generate the numbers.
@@ -214,6 +214,7 @@ fn test_sign_hash_bytes_padding() {
             &private_key,
             &SigningOptions {
                 enforce_low_s: false,
+                strict_hash_byte_length: false,
                 ..Default::default()
             },
         )

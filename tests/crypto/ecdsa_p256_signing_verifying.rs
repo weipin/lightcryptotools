@@ -68,6 +68,7 @@ fn test_ecdsa_p256_sha1_sign() {
         &SigningOptions {
             hmac_hash_algorithm: &HMAC_SHA1_FOR_LEGACY_USE_ONLY,
             enforce_low_s: false,
+            strict_hash_byte_length: false,
         },
     )
     .unwrap();
@@ -101,6 +102,7 @@ fn test_ecdsa_p256_sha256_sign() {
         &SigningOptions {
             hmac_hash_algorithm: &HMAC_SHA256,
             enforce_low_s: false,
+            ..Default::default()
         },
     )
     .unwrap();
@@ -134,6 +136,7 @@ fn test_ecdsa_p256_sha384_sign() {
         &SigningOptions {
             hmac_hash_algorithm: &HMAC_SHA384,
             enforce_low_s: false,
+            strict_hash_byte_length: false,
         },
     )
     .unwrap();
@@ -167,6 +170,7 @@ fn test_ecdsa_p256_sha512_sign() {
         &SigningOptions {
             hmac_hash_algorithm: &HMAC_SHA512,
             enforce_low_s: false,
+            strict_hash_byte_length: false,
         },
     )
     .unwrap();

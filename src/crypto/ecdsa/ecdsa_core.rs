@@ -51,7 +51,7 @@ impl<'a> Signature<'a> {
         self.s <= (&self.curve_params.base_point_order >> 1)
     }
 
-    /// Returns a signature and ensures its `s` is at most the curve order divided by 2,
+    /// Returns a signature and ensures its `s` is at most the order of the base point divided by 2,
     /// (essentially restricting this value to its lower half range).
     ///
     /// For "low s" details see [BIP: 146][1]
@@ -79,7 +79,7 @@ impl PrivateKey<'_> {
         assert!(hash.bit_len() <= self.curve_params.base_point_order.bit_len());
 
         // `k` in [1, n - 1]
-        // n: base point order
+        // n: the order of the base point
         assert!(k > &BigInt::zero() && k < &self.curve_params.base_point_order);
 
         let curve_params = self.curve_params;
@@ -111,7 +111,7 @@ impl PublicKey<'_> {
         let curve_params = self.curve_params;
 
         // w = 1 / s mod n
-        // n: base point order
+        // n: the order of the base point
         let w = invert(&signature.s, &curve_params.base_point_order);
 
         // u = wh mod n
