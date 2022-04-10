@@ -6,8 +6,12 @@
 
 use crate::bigint::bigint_core::{BigInt, Sign};
 use crate::crypto::ecdsa::PrivateKey;
+use crate::random;
+use crate::random::GetOsRandomBytesError;
 use ring::hmac;
 use ring::hmac::Algorithm;
+use std::fmt;
+use std::fmt::Display;
 
 // Generate k with extra random data.
 // https://link.springer.com/chapter/10.1007/978-3-319-44524-3_11
@@ -22,14 +26,40 @@ pub(crate) struct Rfc6979 {
 
     // The number rounded up to the next multiple of `qlen`.
     rlen: usize,
+
+    // Section 3.6 of RFC6979
+    employ_extra_random_data: bool,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub enum GenerateNonceError {
+    FailedToGenerateRandomBytes(GetOsRandomBytesError),
+}
+
+impl Display for GenerateNonceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GenerateNonceError::FailedToGenerateRandomBytes(err) => {
+                write!(f, "Failed to generate random bytes: {err}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for GenerateNonceError {}
+
 impl Rfc6979 {
-    pub(crate) fn new(q: BigInt) -> Rfc6979 {
+    pub(crate) fn new(q: BigInt, employ_extra_random_data: bool) -> Rfc6979 {
         let qlen = q.bit_len();
         let rlen = ((qlen + 7) / 8) * 8;
 
-        Rfc6979 { q, qlen, rlen }
+        Rfc6979 {
+            q,
+            qlen,
+            rlen,
+            employ_extra_random_data,
+        }
     }
 
     pub(crate) fn generate_nonce(
@@ -37,13 +67,24 @@ impl Rfc6979 {
         hash: &[u8],
         private_key: &PrivateKey,
         algorithm: &'static Algorithm,
-    ) -> BigInt {
+    ) -> Result<BigInt, GenerateNonceError> {
         assert_eq!(self.q, private_key.curve_params.base_point_order);
 
         let hash_size = algorithm.digest_algorithm().output_len;
 
         let mut key_and_msg = self.int2octets(&private_key.data);
         key_and_msg.extend_from_slice(&self.bits2octets(hash));
+        if self.employ_extra_random_data {
+            match random::generator::get_os_random_bytes(32) {
+                Ok(bytes) => {
+                    key_and_msg.extend_from_slice(&bytes);
+                }
+                Err(err) => {
+                    return Err(GenerateNonceError::FailedToGenerateRandomBytes(err));
+                }
+            }
+        }
+
         let v = vec![1_u8; hash_size];
         let k = vec![0_u8; hash_size];
 
@@ -73,7 +114,7 @@ impl Rfc6979 {
 
             let nonce = self.bits2int(&t);
             if nonce > BigInt::zero() && nonce < self.q {
-                return nonce;
+                return Ok(nonce);
             }
 
             let mut t = v_tag.as_ref().to_vec();
@@ -137,7 +178,7 @@ mod tests {
             &curve_params,
         )
         .unwrap();
-        let rfc6979 = Rfc6979::new(q);
+        let rfc6979 = Rfc6979::new(q, false);
 
         let message = b"sample";
         let mut context = digest::Context::new(&digest::SHA256);
@@ -146,6 +187,9 @@ mod tests {
         let hash = digest.as_ref();
 
         let k = rfc6979.generate_nonce(hash, &private_key, &hmac::HMAC_SHA256);
-        assert_eq!(k.to_hex(), "23af4074c90a02b3fe61d286d5c87f425e6bdd81b");
+        assert_eq!(
+            k.unwrap().to_hex(),
+            "23af4074c90a02b3fe61d286d5c87f425e6bdd81b"
+        );
     }
 }

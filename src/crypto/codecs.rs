@@ -168,6 +168,8 @@ impl Display for CodecsError {
     }
 }
 
+impl std::error::Error for CodecsError {}
+
 #[cfg(test)]
 mod tests {
     use super::*;

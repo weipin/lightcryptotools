@@ -9,7 +9,7 @@ use devtools::path::integration_testing_data_path;
 use lightcryptotools::bigint::BigInt;
 use lightcryptotools::crypto::codecs::hex_to_bytes;
 use lightcryptotools::crypto::ecdsa::{
-    sign, sign_with_options, verify, verify_with_options, PrivateKey, PublicKey, Signature,
+    sign_with_options, verify, verify_with_options, PrivateKey, PublicKey, Signature,
     SigningOptions, VerifyingOptions,
 };
 use lightcryptotools::crypto::secp256k1;
@@ -37,6 +37,7 @@ fn test_ecdsa_secp256k1_signing_cases() {
             &private_key,
             &SigningOptions {
                 enforce_low_s: false,
+                employ_extra_random_data: false,
                 ..Default::default()
             },
         )
@@ -142,6 +143,7 @@ fn test_sign_hash_greater_than_base_point_order() {
             &private_key,
             &SigningOptions {
                 enforce_low_s: false,
+                employ_extra_random_data: false,
                 ..Default::default()
             },
         )
@@ -168,6 +170,7 @@ fn test_match_secp256k1_fix_1063() {
         &private_key,
         &SigningOptions {
             enforce_low_s: true,
+            employ_extra_random_data: false,
             ..Default::default()
         },
     )
@@ -215,6 +218,7 @@ fn test_sign_hash_bytes_padding() {
             &SigningOptions {
                 enforce_low_s: false,
                 strict_hash_byte_length: false,
+                employ_extra_random_data: false,
                 ..Default::default()
             },
         )
@@ -240,7 +244,15 @@ fn test_valid_signing() {
         let signature_hex = value["signature"].as_str().unwrap();
 
         let private_key = PrivateKey::new(BigInt::from_hex(d_hex).unwrap(), secp256k1).unwrap();
-        let signature = sign(&hex_to_bytes(m_hex).unwrap(), &private_key).unwrap();
+        let signature = sign_with_options(
+            &hex_to_bytes(m_hex).unwrap(),
+            &private_key,
+            &SigningOptions {
+                employ_extra_random_data: false,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         assert_eq!(signature.to_compact_hex(), signature_hex);
     }
 }
@@ -260,7 +272,14 @@ fn test_invalid_signing() {
             Some(x) => x,
             None => continue,
         };
-        let result = sign(&hex_to_bytes(m_hex).unwrap(), &private_key);
+        let result = sign_with_options(
+            &hex_to_bytes(m_hex).unwrap(),
+            &private_key,
+            &SigningOptions {
+                employ_extra_random_data: false,
+                ..Default::default()
+            },
+        );
         assert_eq!(result.is_err(), true);
     }
 }

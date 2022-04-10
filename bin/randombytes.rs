@@ -11,7 +11,7 @@
 //! cargo run --bin randombytes -- 16
 
 use lightcryptotools::crypto::codecs::bytes_to_hex;
-use lightcryptotools::random::get_os_random_bytes;
+use lightcryptotools::random::generator::get_os_random_bytes;
 
 fn main() {
     let bytes_len = std::env::args()

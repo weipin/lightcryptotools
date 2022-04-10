@@ -8,6 +8,7 @@ use devtools::hex::random_hex;
 use lightcryptotools::bigint::BigInt;
 use lightcryptotools::crypto::codecs::hex_to_bytes;
 use lightcryptotools::crypto::ecdsa;
+use lightcryptotools::crypto::ecdsa::SigningOptions;
 use lightcryptotools::crypto::secp256k1;
 use test::Bencher;
 
@@ -24,7 +25,15 @@ fn secp256k1_signing_and_verifying(bench: &mut Bencher) {
     let hash_bytes = hex_to_bytes(random_hex(hash_bytes_len * 2)).unwrap();
 
     bench.iter(|| {
-        let signature = ecdsa::sign(&hash_bytes, &private_key).unwrap();
+        let signature = ecdsa::sign_with_options(
+            &hash_bytes,
+            &private_key,
+            &SigningOptions {
+                employ_extra_random_data: false,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         let result = ecdsa::verify(&hash_bytes, &signature, &public_key).unwrap();
         assert_eq!(result, true);
     })

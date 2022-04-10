@@ -8,7 +8,7 @@ use crate::os::{LibcErrno, NtStatus, SecOsStatus};
 use std::fmt;
 use std::fmt::Display;
 
-/// An error returned by [`get_os_random_bytes`](super::os_random::get_os_random_bytes).
+/// An error returned by [`get_os_random_bytes`](super::os_random::generator::get_os_random_bytes).
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum GetOsRandomBytesError {

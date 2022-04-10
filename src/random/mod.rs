@@ -15,4 +15,4 @@ mod error;
 mod os_random;
 
 pub use error::GetOsRandomBytesError;
-pub use os_random::get_os_random_bytes;
+pub use os_random::generator;

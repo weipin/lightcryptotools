@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use lightcryptotools::random::get_os_random_bytes;
+use lightcryptotools::random::generator::get_os_random_bytes;
 
 #[test]
 fn get_os_random_bytes_0() {

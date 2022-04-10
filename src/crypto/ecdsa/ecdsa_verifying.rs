@@ -8,12 +8,26 @@ use crate::bigint::bigint_core::Sign;
 use crate::bigint::BigInt;
 use crate::crypto::ecdsa::ecdsa_core::Signature;
 use crate::crypto::ecdsa::ecdsa_key::PublicKey;
+use std::fmt;
+use std::fmt::Display;
 
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum VerifyingError {
     StrictHighSFound,
 }
+
+impl Display for VerifyingError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VerifyingError::StrictHighSFound => {
+                write!(f, "A \"high s\" is found when \"low s\" is enforced")
+            }
+        }
+    }
+}
+
+impl std::error::Error for VerifyingError {}
 
 pub fn verify(
     hash: &[u8],
