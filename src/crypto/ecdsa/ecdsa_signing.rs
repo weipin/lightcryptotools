@@ -253,17 +253,13 @@ mod tests {
                 }
             }
         }
-    }
 
-    #[test]
-    fn test_sign_with_extra_random_data_err() {
-        let secp256k1 = secp256k1();
-        let private_key = PrivateKey::new(BigInt::one(), secp256k1).unwrap();
-
+        // err
         let ctx = generator::get_os_random_bytes_context();
         ctx.expect()
             .return_once(|_| Err(GetOsRandomBytesError::LinuxGetRandom(17)));
 
+        let private_key = PrivateKey::new(BigInt::one(), secp256k1).unwrap();
         let err = sign_with_options(
             &[77],
             &private_key,

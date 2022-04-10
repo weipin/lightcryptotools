@@ -507,8 +507,11 @@ mod tests {
 
         fn prop(d_hex: HexString) -> bool {
             let secp256k1 = secp256k1();
-            let private_key =
-                PrivateKey::new(BigInt::from_hex(&d_hex.0).unwrap(), secp256k1).unwrap();
+            let private_key = PrivateKey::new(
+                BigInt::from_hex(&d_hex.0).unwrap() % &secp256k1.base_point_order,
+                secp256k1,
+            )
+            .unwrap();
             if private_key.data.is_zero() {
                 return true; // ignore
             }
