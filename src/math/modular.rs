@@ -28,33 +28,6 @@ pub(crate) fn modulo(a: &BigInt, n: &BigInt) -> BigInt {
 ///
 /// Returns `None` if `a` is not invertible.
 pub(crate) fn invert(a: &BigInt, n: &BigInt) -> Option<BigInt> {
-    // // Employs the extended Euclidean algorithm:
-    // // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Computing_multiplicative_inverses_in_modular_structures
-    // debug_assert!(!a.is_zero());
-    // debug_assert!(n > &BigInt::one());
-    //
-    // let a = modulo(a, n); // ensures a > 0
-    //
-    // let mut t = BigInt::zero();
-    // let mut newt = BigInt::one();
-    // let mut r = n.clone();
-    // let mut newr = a;
-    //
-    // while !newr.is_zero() {
-    //     let quotient = &r / &newr;
-    //     (newt, t) = (&t - &quotient * &newt, newt);
-    //     (newr, r) = (&r - &quotient * &newr, newr);
-    // }
-    //
-    // if r > BigInt::one() {
-    //     panic!("a is not invertible");
-    // }
-    //
-    // if t < BigInt::zero() {
-    //     t = &t + n;
-    // }
-    // t
-
     // Employs extended Euclidean algorithm to compute the multiplicative inverse.
     // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Computing_multiplicative_inverses_in_modular_structures
     debug_assert!(n > &BigInt::one());
