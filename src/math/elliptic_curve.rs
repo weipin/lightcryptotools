@@ -115,24 +115,6 @@ impl Curve {
             base = self.double_point(&base);
         }
         result
-
-        // Employs the Montgomery ladder approach.
-        // https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication#Montgomery_ladder
-        // let mut r0 = Point::identity_element();
-        // let mut r1 = point.clone();
-        // let n = n.clone();
-        //
-        // for bit in n.le_bits().iter().rev() {
-        //     if !bit {
-        //         r1 = self.add_points(&r0, &r1);
-        //         r0 = self.double_point(&r0);
-        //     } else {
-        //         r0 = self.add_points(&r0, &r1);
-        //         r1 = self.double_point(&r1);
-        //     }
-        // }
-        //
-        // r0
     }
 
     /// Returns the modulo multiplicative inverse of `a`
