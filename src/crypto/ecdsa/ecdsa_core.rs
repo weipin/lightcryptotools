@@ -29,6 +29,11 @@ impl<'a> Signature<'a> {
     }
 
     fn is_valid(&self) -> bool {
+        // Ensures that "0 < r < n and 0 < s < n":
+        // https://neilmadden.blog/2022/04/19/psychic-signatures-in-java/
+        //
+        // Tests are done in the integration test "test_invalid_verifying".
+        // Search "Invalid r, s values (== 0)".
         (self.r > BigInt::zero() && self.r < self.curve_params.base_point_order)
             && (self.s > BigInt::zero() && self.s < self.curve_params.base_point_order)
     }

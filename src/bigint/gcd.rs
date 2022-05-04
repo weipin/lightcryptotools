@@ -304,7 +304,7 @@ fn gcd_digits(
         } // dpcc
     } // b != 0
 
-    // x = ua
+    // y = ua
     // z = a
     ((ua, ua_len, ua_sign), (a, a_len))
 }
