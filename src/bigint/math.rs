@@ -28,12 +28,6 @@ impl BigInt {
             panic!("invalid binary representation")
         }
     }
-
-    pub(crate) fn leading_zeros(&self) -> usize {
-        assert!(!self.is_zero());
-
-        self.as_digits().last().unwrap().leading_zeros() as usize
-    }
 }
 
 #[cfg(test)]
@@ -50,7 +44,7 @@ mod tests {
     }
 
     #[test]
-    fn test_trailing_zeros_and_leading_zeros() {
+    fn test_trailing_zeros() {
         let shifting_bits_len_data = [
             0,
             1,
@@ -65,10 +59,6 @@ mod tests {
         for i in shifting_bits_len_data {
             let a = BigInt::from(1) << i as usize;
             assert_eq!(a.trailing_zeros(), i as usize);
-            assert_eq!(
-                a.leading_zeros(),
-                (Digit::BITS - i % Digit::BITS - 1) as usize
-            );
         }
     }
 }
