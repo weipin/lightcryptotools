@@ -7,6 +7,7 @@
 //! Implements modular arithmetic functions.
 
 use crate::bigint::bigint_core::BigInt;
+use crate::bigint::gcd::gcd;
 
 /// Calculates `a` modulo `n`,
 /// returning the least non-negative remainder of `a (mod n)`.
@@ -24,33 +25,51 @@ pub(crate) fn modulo(a: &BigInt, n: &BigInt) -> BigInt {
 }
 
 /// Returns the modulo multiplicative inverse of `a` under modulo `n`.
-pub(crate) fn invert(a: &BigInt, n: &BigInt) -> BigInt {
-    // Employs the extended Euclidean algorithm:
+///
+/// Returns `None` if `a` is not invertible.
+pub(crate) fn invert(a: &BigInt, n: &BigInt) -> Option<BigInt> {
+    // // Employs the extended Euclidean algorithm:
+    // // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Computing_multiplicative_inverses_in_modular_structures
+    // debug_assert!(!a.is_zero());
+    // debug_assert!(n > &BigInt::one());
+    //
+    // let a = modulo(a, n); // ensures a > 0
+    //
+    // let mut t = BigInt::zero();
+    // let mut newt = BigInt::one();
+    // let mut r = n.clone();
+    // let mut newr = a;
+    //
+    // while !newr.is_zero() {
+    //     let quotient = &r / &newr;
+    //     (newt, t) = (&t - &quotient * &newt, newt);
+    //     (newr, r) = (&r - &quotient * &newr, newr);
+    // }
+    //
+    // if r > BigInt::one() {
+    //     panic!("a is not invertible");
+    // }
+    //
+    // if t < BigInt::zero() {
+    //     t = &t + n;
+    // }
+    // t
+
+    // Employs extended Euclidean algorithm to compute the multiplicative inverse.
     // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Computing_multiplicative_inverses_in_modular_structures
-    debug_assert!(!a.is_zero());
     debug_assert!(n > &BigInt::one());
+    debug_assert!(!a.is_zero());
 
     let a = modulo(a, n); // ensures a > 0
 
-    let mut t = BigInt::zero();
-    let mut newt = BigInt::one();
-    let mut r = n.clone();
-    let mut newr = a;
-
-    while !newr.is_zero() {
-        let quotient = &r / &newr;
-        (newt, t) = (&t - &quotient * &newt, newt);
-        (newr, r) = (&r - &quotient * &newr, newr);
+    let (_, y, v) = gcd(n, &a);
+    // xn + ya = 1
+    if v != BigInt::one() {
+        None
+    } else {
+        // ya = 1 mod n
+        Some(y)
     }
-
-    if r > BigInt::one() {
-        panic!("a is not invertible");
-    }
-
-    if t < BigInt::zero() {
-        t = &t + n;
-    }
-    t
 }
 
 /// Raises `a` to the power of `exp` under modulo `n`.

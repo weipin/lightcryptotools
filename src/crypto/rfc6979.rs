@@ -68,7 +68,7 @@ impl Rfc6979 {
         private_key: &PrivateKey,
         algorithm: &'static Algorithm,
     ) -> Result<BigInt, GenerateNonceError> {
-        assert_eq!(self.q, private_key.curve_params.base_point_order);
+        debug_assert_eq!(self.q, private_key.curve_params.base_point_order);
 
         let hash_size = algorithm.digest_algorithm().output_len;
 

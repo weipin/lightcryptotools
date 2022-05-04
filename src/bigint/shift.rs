@@ -6,19 +6,21 @@
 
 use super::bigint_core::BigInt;
 use super::len::len_digits;
+use crate::bigint::bits::bit_len_digits;
 use crate::bigint::digit::Digit;
 use std::iter::repeat;
 use std::ops::{Shl, Shr};
 
-fn shift_right(a: &mut BigInt, n: usize) {
-    if n >= a.bit_len() {
-        a.digits_storage.fill(0);
-        a.digits_len = 1;
-        return;
+/// Returns the effective digits length of the shifted.
+pub(crate) fn shift_right_digits(digits: &mut [Digit], digits_len: usize, n: usize) -> usize {
+    let bit_len = bit_len_digits(digits);
+
+    if n >= bit_len {
+        digits.fill(0);
+        return 1;
     }
 
-    let digits = &mut a.digits_storage[..a.digits_len];
-    let mut digits_len = a.digits_len;
+    let mut digits_len = digits_len;
     let shifting_digits_len = n / Digit::BITS as usize;
     let shifting_bits_len = n % Digit::BITS as usize;
 
@@ -41,7 +43,17 @@ fn shift_right(a: &mut BigInt, n: usize) {
         digits_len = len_digits(digits);
     }
 
-    a.digits_len = digits_len;
+    digits_len
+}
+
+impl BigInt {
+    fn shift_right(&mut self, n: usize) {
+        self.digits_len = shift_right_digits(
+            &mut self.digits_storage[..self.digits_len],
+            self.digits_len,
+            n,
+        );
+    }
 }
 
 impl<'a> Shr<usize> for &'a BigInt {
@@ -49,7 +61,7 @@ impl<'a> Shr<usize> for &'a BigInt {
 
     fn shr(self, rhs: usize) -> Self::Output {
         let mut a = self.clone();
-        shift_right(&mut a, rhs);
+        a.shift_right(rhs);
         a
     }
 }
@@ -62,32 +74,34 @@ impl Shr<usize> for BigInt {
     }
 }
 
-fn shift_left(a: &mut BigInt, n: usize) {
-    let mut digits_len = a.digits_len;
+/// Returns the effective digits length of the shifted.
+pub(crate) fn shift_left_digits(digits: &mut Vec<Digit>, digits_len: usize, n: usize) -> usize {
+    let mut digits_len = digits_len;
+
     let shifting_digits_len = n / Digit::BITS as usize;
     let shifting_bits_len = n % Digit::BITS as usize;
 
     // Shifts in digit.
     if shifting_digits_len > 0 {
-        let available_slots_len = a.digits_storage.len() - digits_len;
+        let available_slots_len = digits.len() - digits_len;
         if available_slots_len < shifting_digits_len {
             let iter = repeat(0).take(shifting_digits_len - available_slots_len);
-            a.digits_storage.extend(iter);
+            digits.extend(iter);
         }
 
         digits_len += shifting_digits_len;
-        a.digits_storage[..digits_len].rotate_right(shifting_digits_len);
+        digits[..digits_len].rotate_right(shifting_digits_len);
     }
 
     // Shifts remaining bits.
     if shifting_bits_len > 0 {
         let next_shifting_bits_len = Digit::BITS as usize - shifting_bits_len;
         let mut carry = 0;
-        if digits_len == a.digits_storage.len() {
+        if digits_len == digits.len() {
             // Extends the storage for the possible carry at the most significant digit.
-            a.digits_storage.push(0);
+            digits.push(0);
         }
-        let digits = &mut a.digits_storage[..digits_len + 1];
+        let digits = &mut digits[..digits_len + 1];
         for digit in digits.iter_mut() {
             let t = *digit >> next_shifting_bits_len;
             *digit = *digit << shifting_bits_len | carry;
@@ -96,7 +110,13 @@ fn shift_left(a: &mut BigInt, n: usize) {
         digits_len = len_digits(digits);
     }
 
-    a.digits_len = digits_len;
+    digits_len
+}
+
+impl BigInt {
+    fn shift_left(&mut self, n: usize) {
+        self.digits_len = shift_left_digits(&mut self.digits_storage, self.digits_len, n);
+    }
 }
 
 impl<'a> Shl<usize> for &'a BigInt {
@@ -104,7 +124,7 @@ impl<'a> Shl<usize> for &'a BigInt {
 
     fn shl(self, rhs: usize) -> Self::Output {
         let mut a = self.clone();
-        shift_left(&mut a, rhs);
+        a.shift_left(rhs);
         a
     }
 }
@@ -130,11 +150,11 @@ mod tests {
             BigInt::from_hex("c8f14181b339ccd9092ce946d7a4c7ebc3708632ca4714ec67fb").unwrap();
         let mut b = a.clone();
 
-        shift_right(&mut a, 0);
+        a.shift_right(0);
         assert_eq!(a, b);
 
         for _ in 0..208 {
-            shift_right(&mut a, 1);
+            a.shift_right(1);
             b = b / BigInt::from(2);
 
             assert_eq!(a, b);
@@ -161,11 +181,11 @@ mod tests {
             BigInt::from_hex("c8f14181b339ccd9092ce946d7a4c7ebc3708632ca4714ec67fb").unwrap();
         let mut b = a.clone();
 
-        shift_left(&mut a, 0);
+        a.shift_left(0);
         assert_eq!(a, b);
 
         for _ in 0..208 {
-            shift_left(&mut a, 1);
+            a.shift_left(1);
             b = b * BigInt::from(2);
 
             assert_eq!(a, b);

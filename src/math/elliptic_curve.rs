@@ -34,7 +34,7 @@ impl Curve {
         let three = BigInt::from(3);
 
         // m = (3 * point.x ^ 2 + a) / 2 * point.y
-        let m = (&three * &a.x * &a.x + &self.a) * self.invert(&(&two * &a.y));
+        let m = (&three * &a.x * &a.x + &self.a) * self.invert(&(&two * &a.y)).unwrap();
         let m = self.modulo(&m);
 
         // x = m^2 – 2 * point.x
@@ -84,7 +84,7 @@ impl Curve {
         }
 
         // m = (b.y – a.y) / (b.x – a.x)
-        let m = (&b.y - &a.y) * self.invert(&(&b.x - &a.x));
+        let m = (&b.y - &a.y) * self.invert(&(&b.x - &a.x)).unwrap();
         let m = self.modulo(&m);
 
         // x = m^2 – a.x – b.x
@@ -137,7 +137,7 @@ impl Curve {
 
     /// Returns the modulo multiplicative inverse of `a`
     /// with respect to the integers modulo `self.p`.
-    pub(crate) fn invert(&self, a: &BigInt) -> BigInt {
+    pub(crate) fn invert(&self, a: &BigInt) -> Option<BigInt> {
         invert(a, &self.p)
     }
 }

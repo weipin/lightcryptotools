@@ -25,7 +25,7 @@ impl<'a> Neg for &'a Sign {
     type Output = Sign;
 
     fn neg(self) -> Self::Output {
-        -self.clone()
+        -*self
     }
 }
 

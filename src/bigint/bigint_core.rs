@@ -22,7 +22,7 @@ pub struct BigInt {
 /// Denotes the sign of a big integer.
 ///
 /// A big integer, including 0, can be denoted as either positive or negative.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) enum Sign {
     Positive,
     Negative,

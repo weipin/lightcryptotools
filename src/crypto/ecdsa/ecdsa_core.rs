@@ -28,7 +28,7 @@ impl<'a> Signature<'a> {
         }
     }
 
-    pub(crate) fn is_valid(&self) -> bool {
+    fn is_valid(&self) -> bool {
         (self.r > BigInt::zero() && self.r < self.curve_params.base_point_order)
             && (self.s > BigInt::zero() && self.s < self.curve_params.base_point_order)
     }
@@ -38,8 +38,6 @@ impl<'a> Signature<'a> {
     ///
     /// For r or s with byte length less than 32, the hexadecimal representation is leading zero padded.
     pub fn to_compact_hex(&self) -> String {
-        assert!(self.is_valid());
-
         let hex_len = self.curve_params.base_point_order.byte_len() * 2;
         let r_hex = self.r.to_hex();
         let s_hex = self.s.to_hex();
@@ -91,7 +89,7 @@ impl PrivateKey<'_> {
         }
 
         // s = (h + rd) / k mod p
-        let s = (hash + &r * &self.data) * invert(k, &curve_params.base_point_order);
+        let s = (hash + &r * &self.data) * invert(k, &curve_params.base_point_order).unwrap();
         let s = modulo(&s, &curve_params.base_point_order);
         if s.is_zero() {
             return None;
@@ -112,7 +110,7 @@ impl PublicKey<'_> {
 
         // w = 1 / s mod n
         // n: the order of the base point
-        let w = invert(&signature.s, &curve_params.base_point_order);
+        let w = invert(&signature.s, &curve_params.base_point_order).unwrap();
 
         // u = wh mod n
         let u = &w * hash;

@@ -34,13 +34,11 @@ impl<'a> PrivateKey<'a> {
         }
     }
 
-    pub fn is_valid(&self) -> bool {
+    fn is_valid(&self) -> bool {
         self.data > BigInt::zero() && self.data < self.curve_params.base_point_order
     }
 
     pub fn public_key(&self) -> PublicKey {
-        assert!(self.is_valid());
-
         let curve_params = self.curve_params;
         let data = curve_params
             .curve
@@ -60,7 +58,7 @@ impl<'a> PublicKey<'a> {
         }
     }
 
-    pub fn is_valid(&self) -> bool {
+    fn is_valid(&self) -> bool {
         self.curve_params.validate_point(&self.data)
     }
 

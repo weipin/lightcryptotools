@@ -84,19 +84,19 @@ impl<'a, 'b> Add<&'b BigInt> for &'a BigInt {
         if self.sign == rhs.sign {
             let mut output = digitvec_adding_output(a.len(), b.len());
             let output_len = add_digits(a, b, &mut output);
-            BigInt::new(output, output_len, self.sign.clone())
+            BigInt::new(output, output_len, self.sign)
         } else {
             match cmp_digits(a, b) {
                 Ordering::Less => {
                     let mut output = digitvec_subtracting_output(b.len(), a.len());
                     let output_len = sub_digits(b, a, &mut output);
-                    BigInt::new(output, output_len, rhs.sign.clone())
+                    BigInt::new(output, output_len, rhs.sign)
                 }
                 Ordering::Equal => BigInt::from(0),
                 Ordering::Greater => {
                     let mut output = digitvec_subtracting_output(a.len(), b.len());
                     let output_len = sub_digits(a, b, &mut output);
-                    BigInt::new(output, output_len, self.sign.clone())
+                    BigInt::new(output, output_len, self.sign)
                 }
             }
         }

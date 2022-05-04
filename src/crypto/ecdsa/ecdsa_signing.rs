@@ -18,7 +18,7 @@ use std::fmt::Display;
 pub enum SigningError {
     EmptyHash,
     HashBitLengthDoesNotMatchBasePointOrder,
-    FailedToGenerateDeterministicNonce(GenerateNonceError),
+    FailedToGenerateNonce(GenerateNonceError),
 }
 
 impl Display for SigningError {
@@ -30,7 +30,7 @@ impl Display for SigningError {
             SigningError::HashBitLengthDoesNotMatchBasePointOrder => {
                 write!(f, "Hash bit length doesn't equal to the bit length of the order of the base point")
             }
-            SigningError::FailedToGenerateDeterministicNonce(err) => {
+            SigningError::FailedToGenerateNonce(err) => {
                 write!(f, "Failed to generate deterministic nonce: {err}")
             }
         }
@@ -51,8 +51,6 @@ pub fn sign_with_options<'a>(
     private_key: &'a PrivateKey,
     options: &SigningOptions,
 ) -> Result<Signature<'a>, SigningError> {
-    assert!(private_key.is_valid());
-
     if hash.is_empty() {
         return Err(SigningError::EmptyHash);
     }
@@ -87,7 +85,7 @@ pub fn sign_with_options<'a>(
         let k = match rfc6979.generate_nonce(hash, private_key, options.hmac_hash_algorithm) {
             Ok(nonce) => nonce,
             Err(err) => {
-                return Err(SigningError::FailedToGenerateDeterministicNonce(err));
+                return Err(SigningError::FailedToGenerateNonce(err));
             }
         };
         if let Some(signature) = private_key.sign(&hash_n, &k) {

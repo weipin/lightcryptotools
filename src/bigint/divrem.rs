@@ -27,7 +27,7 @@ use std::ops::{Div, Rem};
 /// - `quotient` and `remainder` will be filled with 0 first, and then the output digits.
 /// - Will panic if `divisor` represents 0.
 #[inline]
-fn div_rem_digits(
+pub(crate) fn div_rem_digits(
     dividend: &BigUintSlice,
     divisor: &BigUintSlice,
     quotient: &mut [Digit],
@@ -71,8 +71,10 @@ fn div_rem_digits(
 
         // Divides from the most significant digit to the least significant.
         // The iterators’ direction are reversed for the digits are stored in little-endian order.
-        for (dividend_digit, quotient_digit) in
-            dividend.iter().rev().zip(quotient.iter_mut().rev())
+        for (dividend_digit, quotient_digit) in dividend
+            .iter()
+            .rev()
+            .zip(quotient[..dividend.len()].iter_mut().rev())
         {
             let t = remainder0 << Digit::BITS | *dividend_digit as DoubleDigit;
             *quotient_digit = (t / divisor0) as Digit;
@@ -375,7 +377,7 @@ pub(crate) fn div_rem(dividend: &BigInt, divisor: &BigInt) -> (BigInt, BigInt) {
     };
     (
         BigInt::new(quotient, quotient_len, quotient_sign),
-        BigInt::new(remainder, remainder_len, dividend.sign.clone()),
+        BigInt::new(remainder, remainder_len, dividend.sign),
     )
 }
 
@@ -543,6 +545,12 @@ mod tests {
     #[test]
     fn test_div_cases() {
         let data = [
+            // one-digit dividend and one-digit divisor
+            ("54", "15"),
+
+            // one-digit divisor
+            ("4e432fBecBAF6B2EfE401dC31caC3C74b46cB1ACc826", "C7"),
+
             // `r_hat > Digit::MAX` for `Digit` is u8
             ("4e432fBecBAF6B2EfE401dC31caC3C74b46cB1ACc826", "D0F8C7ae"),
 
@@ -554,9 +562,6 @@ mod tests {
 
             // dividend less than divisor
             ("D0F8C7ae", "4e432fBecBAF6B2EfE401dC31caC3C74b46cB1ACc826"),
-
-            // one-digit divisor
-            ("4e432fBecBAF6B2EfE401dC31caC3C74b46cB1ACc826", "C7"),
 
             // ``q_hat - 3 == q`` for `Digit` is u8
             ("DF9D8de0aDBCcC5effc99f39b8Cfe2Db8F4294dDf77B849ce548546d2fc4D3fEb6FdCe40ebBe2B8eAFcC01",
