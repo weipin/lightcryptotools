@@ -10,17 +10,16 @@ use crate::crypto::codecs::bytes_to_hex;
 
 impl BigInt {
     /// Returns the hexadecimal representation.
+    ///
+    /// The representation is "1-byte aligned", matching the behavior of the method `from_hex`.
+    /// For instance, the hexadecimal representation of value zero is "00".
     pub fn to_hex(&self) -> String {
         if self.is_zero() {
-            return "0".to_string();
+            return "00".to_string();
         }
 
         let bytes = self.to_be_bytes();
         let mut hex = bytes_to_hex(&bytes);
-        // Excludes leading zeros.
-        // 0e -> e
-        let start = hex.chars().position(|c| c != '0').unwrap();
-        let mut hex = hex.split_off(start);
 
         match self.sign {
             Sign::Positive => hex,
@@ -47,13 +46,13 @@ mod tests {
     #[test]
     fn test_to_hex() {
         let data = [
-            (BigInt::from(0), "0"),
-            (BigInt::from(1), "1"),
-            (BigInt::from(-1), "-1"),
+            (BigInt::from(0), "00"),
+            (BigInt::from(1), "01"),
+            (BigInt::from(-1), "-01"),
             (BigInt::from(i8::MIN), "-80"),
-            (BigInt::from_hex("").unwrap(), "0"),
-            (BigInt::from_hex("-00").unwrap(), "0"),
-            (BigInt::from_hex("+00").unwrap(), "0"),
+            (BigInt::from_hex("").unwrap(), "00"),
+            (BigInt::from_hex("-00").unwrap(), "00"),
+            (BigInt::from_hex("+00").unwrap(), "00"),
         ];
 
         for (a, output) in data {

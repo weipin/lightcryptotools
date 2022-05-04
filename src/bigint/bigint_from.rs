@@ -55,19 +55,20 @@ macro_rules! test_from_int {
 mod tests {
     use super::*;
     use crate::crypto::codecs::CodecsError;
+    use crate::testing_tools::quickcheck::BigIntHexString;
     use ::quickcheck_macros::quickcheck;
 
     #[test]
     fn test_from_hex() {
         let data = [
-            ("", "0"),
-            ("00", "0"),
+            ("", "00"),
+            ("00", "00"),
             ("79be66", "79be66"),
             (
                 "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
                 "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
             ),
-            ("-00", "0"),
+            ("-00", "00"),
             ("-79be66", "-79be66"),
             (
                 "-79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
@@ -79,6 +80,14 @@ mod tests {
 
             assert_eq!(a.to_hex(), output);
         }
+    }
+
+    #[quickcheck]
+    fn from_hex_and_to_hex_double_conversion(hex: BigIntHexString) -> bool {
+        let n1 = BigInt::from_hex(hex.0).unwrap();
+        let hex = n1.to_hex();
+        let n2 = BigInt::from_hex(hex).unwrap();
+        n1 == n2
     }
 
     #[test]

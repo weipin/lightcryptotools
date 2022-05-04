@@ -189,7 +189,7 @@ mod tests {
         let k = rfc6979.generate_nonce(hash, &private_key, &hmac::HMAC_SHA256);
         assert_eq!(
             k.unwrap().to_hex(),
-            "23af4074c90a02b3fe61d286d5c87f425e6bdd81b"
+            "023af4074c90a02b3fe61d286d5c87f425e6bdd81b"
         );
     }
 }
