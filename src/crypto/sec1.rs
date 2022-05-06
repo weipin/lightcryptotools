@@ -5,9 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::bigint::bigint_core::BigInt;
-use crate::crypto::elliptic_curve_params::{
-    EllipticCurveDomainKeyEncoding, EllipticCurveParams,
-};
+use crate::crypto::elliptic_curve_params::{EllipticCurveParams, EllipticCurveParamsEncoding};
 use crate::math::elliptic_curve::Point;
 use crate::math::modular::{modulo, sqrt};
 use std::fmt::{Display, Formatter};
@@ -38,7 +36,7 @@ impl Display for PointDecodingError {
 
 impl std::error::Error for PointDecodingError {}
 
-impl EllipticCurveDomainKeyEncoding for Sec1 {
+impl EllipticCurveParamsEncoding for Sec1 {
     /// Decodes a Point as described in http://www.secg.org/SEC1-Ver-1.0.pdf,
     /// sections 2.3.3/2.3.4.
     ///

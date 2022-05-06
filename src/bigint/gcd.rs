@@ -881,7 +881,7 @@ mod tests {
         (c, d, g * v)
     }
 
-    /// Returns (u, v, d) such that ux + vn = d, where d = gcd(n, x)
+    /// Returns (v, u, d) such that ux + vn = d, where d = gcd(n, x)
     /// n > x
     fn gcd_euclid_extended(n: &BigInt, x: &BigInt) -> (BigInt, BigInt, BigInt) {
         // See HEHCC, Algorithm 10.42 Euclid extended gcd of positive integers

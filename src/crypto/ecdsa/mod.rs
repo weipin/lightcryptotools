@@ -5,6 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 pub(crate) mod ecdsa_core;
+pub(crate) mod ecdsa_encoding;
 pub(crate) mod ecdsa_key;
 pub(crate) mod ecdsa_signing;
 pub(crate) mod ecdsa_verifying;

@@ -227,7 +227,7 @@ mod tests {
                 },
             )
             .unwrap();
-            assert_eq!(signature.to_compact_hex(), signature_hex);
+            assert_eq!(signature.to_p1363_hex(), signature_hex);
 
             // with extra data
             for (extra_data, &signature_hex) in zip(
@@ -247,7 +247,7 @@ mod tests {
                         },
                     )
                     .unwrap();
-                    assert_eq!(signature.to_compact_hex(), signature_hex);
+                    assert_eq!(signature.to_p1363_hex(), signature_hex);
                 }
             }
         }

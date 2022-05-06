@@ -31,23 +31,12 @@ impl<'a> Signature<'a> {
     fn is_valid(&self) -> bool {
         // Ensures that "0 < r < n and 0 < s < n":
         // https://neilmadden.blog/2022/04/19/psychic-signatures-in-java/
+        // https://neilmadden.blog/2022/04/25/a-few-clarifications-about-cve-2022-21449/
         //
         // Tests are done in the integration test "test_invalid_verifying".
         // Search "Invalid r, s values (== 0)".
         (self.r > BigInt::zero() && self.r < self.curve_params.base_point_order)
             && (self.s > BigInt::zero() && self.s < self.curve_params.base_point_order)
-    }
-
-    /// Returns the hexadecimal representation of the 64 bytes for r and s concatenated with each other.
-    /// The first 64 hexadecimal digits is r, the second is s.
-    ///
-    /// For r or s with byte length less than 32, the hexadecimal representation is leading zero padded.
-    pub fn to_compact_hex(&self) -> String {
-        let hex_len = self.curve_params.base_point_order.byte_len() * 2;
-        let r_hex = self.r.to_hex();
-        let s_hex = self.s.to_hex();
-
-        format!("{r_hex:0>hex_len$}{s_hex:0>hex_len$}")
     }
 
     pub(crate) fn is_low_s_signature(&self) -> bool {
@@ -215,41 +204,6 @@ mod tests {
     }
 
     #[test]
-    fn test_to_compact_hex() {
-        let secp256k1 = secp256k1();
-        let data = [
-            (
-                &Signature::new(BigInt::one(), BigInt::from(2), secp256k1).unwrap(),
-                concat!(
-                    "0000000000000000000000000000000000000000000000000000000000000001",
-                    "0000000000000000000000000000000000000000000000000000000000000002"
-                ),
-            ),
-            (
-                &Signature::new(
-                    BigInt::from_hex(
-                        "fbe907aac2bd7cd0ce3711f644235486367bdca4b87f19f76a7935fa00c6d169",
-                    )
-                    .unwrap(),
-                    BigInt::from_hex(
-                        "7f16095dd8cb6a4da57da25e3a3178665513e12c7b4dc52f2c212d250eef6407",
-                    )
-                    .unwrap(),
-                    secp256k1,
-                )
-                .unwrap(),
-                concat!(
-                    "fbe907aac2bd7cd0ce3711f644235486367bdca4b87f19f76a7935fa00c6d169",
-                    "7f16095dd8cb6a4da57da25e3a3178665513e12c7b4dc52f2c212d250eef6407"
-                ),
-            ),
-        ];
-        for (signature, signature_hex) in data {
-            assert_eq!(signature.to_compact_hex(), signature_hex);
-        }
-    }
-
-    #[test]
     fn test_to_low_s_signature() {
         // For secp256k1
         // low s in [0x1, 0x7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0]
@@ -299,7 +253,7 @@ mod tests {
         let signature = private_key.sign(&hash_n, &k).unwrap();
 
         // sign and verify
-        let hex = signature.to_compact_hex();
+        let hex = signature.to_p1363_hex();
         assert_eq!(hex, signature_hex);
         assert!(public_key.verify(&hash_n, &signature));
 

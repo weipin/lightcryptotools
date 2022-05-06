@@ -43,7 +43,7 @@ fn test_ecdsa_secp256k1_signing_cases() {
         )
         .unwrap();
 
-        let hex = signature.to_compact_hex();
+        let hex = signature.to_p1363_hex();
         assert_eq!(hex, signature_hex);
     }
 }
@@ -148,7 +148,7 @@ fn test_sign_hash_greater_than_base_point_order() {
             },
         )
         .unwrap();
-        assert_eq!(signature.to_compact_hex(), signature_hex);
+        assert_eq!(signature.to_p1363_hex(), signature_hex);
     }
 }
 
@@ -176,7 +176,7 @@ fn test_match_secp256k1_fix_1063() {
     )
     .unwrap();
     assert_eq!(
-        signature.to_compact_hex(),
+        signature.to_p1363_hex(),
         concat!(
             "e3d70248ea2fc771fc8d5e62d76b9cfd5402c96990333549eaadce1ae9f737eb",
             "5cfbdc7d1e0ec18cc9b57bbb18f0a57dc929ec3c4dfac9073c581705015f6a8a"
@@ -224,7 +224,7 @@ fn test_sign_hash_bytes_padding() {
         )
         .unwrap();
 
-        let hex = signature.to_compact_hex();
+        let hex = signature.to_p1363_hex();
         assert_eq!(hex, signature_hex);
     }
 }
@@ -253,7 +253,7 @@ fn test_valid_signing() {
             },
         )
         .unwrap();
-        assert_eq!(signature.to_compact_hex(), signature_hex);
+        assert_eq!(signature.to_p1363_hex(), signature_hex);
     }
 }
 
@@ -303,9 +303,10 @@ fn test_invalid_verifying() {
                 continue; // invalid public key sec1 hex
             }
         };
-        let signature = match hex_to_secp256k1_signature(signature_hex) {
-            Some(x) => x,
-            None => continue,
+
+        let signature = match Signature::from_p1363_hex(signature_hex, secp256k1) {
+            Ok(x) => x,
+            Err(_) => continue,
         };
         let result = verify_with_options(
             &hex_to_bytes(m_hex).unwrap(),
@@ -315,16 +316,4 @@ fn test_invalid_verifying() {
         );
         assert_eq!(result.is_err(), true);
     }
-}
-
-fn hex_to_secp256k1_signature(hex: &str) -> Option<Signature> {
-    let secp256k1 = secp256k1();
-
-    let element_hex_len = 32 * 2;
-    assert_eq!(hex.len(), element_hex_len * 2);
-
-    let (r_hex, s_hex) = hex.split_at(element_hex_len);
-    let r = BigInt::from_hex(r_hex).unwrap();
-    let s = BigInt::from_hex(s_hex).unwrap();
-    Signature::new(r, s, secp256k1)
 }

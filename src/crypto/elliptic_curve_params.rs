@@ -30,7 +30,7 @@ impl Default for EllipticCurveParams {
     }
 }
 
-pub(crate) trait EllipticCurveDomainKeyEncoding {
+pub(crate) trait EllipticCurveParamsEncoding {
     fn decode_point<T: AsRef<[u8]>>(
         data: T,
         curve_params: &EllipticCurveParams,

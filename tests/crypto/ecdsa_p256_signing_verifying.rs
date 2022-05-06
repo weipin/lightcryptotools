@@ -73,7 +73,7 @@ fn test_ecdsa_p256_sha1_sign() {
         },
     )
     .unwrap();
-    assert_eq!(signature.to_compact_hex(), signature_expected);
+    assert_eq!(signature.to_p1363_hex(), signature_expected);
 
     let public_key = private_key.public_key();
     assert!(verify(hash, &signature, &public_key).unwrap());
@@ -108,7 +108,7 @@ fn test_ecdsa_p256_sha256_sign() {
         },
     )
     .unwrap();
-    assert_eq!(signature.to_compact_hex(), signature_expected);
+    assert_eq!(signature.to_p1363_hex(), signature_expected);
 
     let public_key = private_key.public_key();
     assert!(verify(hash, &signature, &public_key).unwrap());
@@ -143,7 +143,7 @@ fn test_ecdsa_p256_sha384_sign() {
         },
     )
     .unwrap();
-    assert_eq!(signature.to_compact_hex(), signature_expected);
+    assert_eq!(signature.to_p1363_hex(), signature_expected);
 
     let public_key = private_key.public_key();
     assert!(verify(hash, &signature, &public_key).unwrap());
@@ -178,7 +178,7 @@ fn test_ecdsa_p256_sha512_sign() {
         },
     )
     .unwrap();
-    assert_eq!(signature.to_compact_hex(), signature_expected);
+    assert_eq!(signature.to_p1363_hex(), signature_expected);
 
     let public_key = private_key.public_key();
     assert!(verify(hash, &signature, &public_key).unwrap());
