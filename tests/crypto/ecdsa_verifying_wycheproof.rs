@@ -49,11 +49,15 @@ fn test_ecdsa_verifying_p1363(
             let hash = digest.as_ref();
 
             let enforce_low_s = false;
+            let strict_hash_byte_length = false;
             let result = verify_with_options(
                 hash,
                 &signature,
                 &public_key,
-                &VerifyingOptions { enforce_low_s },
+                &VerifyingOptions {
+                    enforce_low_s,
+                    strict_hash_byte_length,
+                },
             );
             if result.is_err() {
                 assert_eq!(result_str, "invalid");

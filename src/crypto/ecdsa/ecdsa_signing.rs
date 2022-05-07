@@ -56,11 +56,10 @@ pub fn sign_with_options<'a>(
     }
 
     if options.strict_hash_byte_length {
-        assert_eq!(
+        debug_assert_eq!(
             private_key.curve_params.base_point_order.bit_len() % 8,
             0,
-            "The bit length of the order of the base point is not 1-byte aligned.\
-            Call `sign_with_options` and specify the `SigningOptions` with `strict_hash_byte_length` set to `false`"
+            "The bit length of the order of the base point is not 1-byte aligned."
         );
 
         if hash.len() * 8 != private_key.curve_params.base_point_order.bit_len() {

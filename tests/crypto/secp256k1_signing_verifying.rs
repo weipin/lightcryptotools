@@ -312,7 +312,10 @@ fn test_invalid_verifying() {
             &hex_to_bytes(m_hex).unwrap(),
             &signature,
             &public_key,
-            &VerifyingOptions { enforce_low_s },
+            &VerifyingOptions {
+                enforce_low_s,
+                ..Default::default()
+            },
         );
         assert_eq!(result.is_err(), true);
     }

@@ -15,6 +15,7 @@ use std::fmt::Display;
 #[non_exhaustive]
 pub enum VerifyingError {
     StrictHighSFound,
+    HashBitLengthDoesNotMatchBasePointOrder,
 }
 
 impl Display for VerifyingError {
@@ -22,6 +23,9 @@ impl Display for VerifyingError {
         match self {
             VerifyingError::StrictHighSFound => {
                 write!(f, "A \"high s\" is found when \"low s\" is enforced")
+            }
+            VerifyingError::HashBitLengthDoesNotMatchBasePointOrder => {
+                write!(f, "Hash bit length doesn't equal to the bit length of the order of the base point")
             }
         }
     }
@@ -47,6 +51,18 @@ pub fn verify_with_options(
         return Err(VerifyingError::StrictHighSFound);
     }
 
+    if options.strict_hash_byte_length {
+        debug_assert_eq!(
+            public_key.curve_params.base_point_order.bit_len() % 8,
+            0,
+            "The bit length of the order of the base point is not 1-byte aligned."
+        );
+
+        if hash.len() * 8 != public_key.curve_params.base_point_order.bit_len() {
+            return Err(VerifyingError::HashBitLengthDoesNotMatchBasePointOrder);
+        }
+    }
+
     let hash_n = BigInt::from_be_bytes_with_max_bits_len(
         hash,
         public_key.curve_params.base_point_order.bit_len(),
@@ -59,6 +75,7 @@ pub fn verify_with_options(
 
 pub struct VerifyingOptions {
     pub enforce_low_s: bool,
+    pub strict_hash_byte_length: bool,
 }
 
 #[allow(clippy::derivable_impls)]
@@ -66,6 +83,7 @@ impl Default for VerifyingOptions {
     fn default() -> Self {
         Self {
             enforce_low_s: false,
+            strict_hash_byte_length: true,
         }
     }
 }

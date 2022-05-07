@@ -9,7 +9,10 @@
 
 use crate::curves::nist_p256;
 use lightcryptotools::bigint::BigInt;
-use lightcryptotools::crypto::ecdsa::{sign_with_options, verify, PrivateKey, SigningOptions};
+use lightcryptotools::crypto::ecdsa::{
+    sign_with_options, verify, verify_with_options, PrivateKey, SigningOptions,
+    VerifyingOptions,
+};
 use ring::digest;
 use ring::hmac::{HMAC_SHA1_FOR_LEGACY_USE_ONLY, HMAC_SHA256, HMAC_SHA384, HMAC_SHA512};
 
@@ -45,7 +48,16 @@ fn test_ecdsa_p256_sha1_sign() {
     assert_eq!(signature.to_p1363_hex(), signature_expected);
 
     let public_key = private_key.public_key();
-    assert!(verify(hash, &signature, &public_key).unwrap());
+    assert!(verify_with_options(
+        hash,
+        &signature,
+        &public_key,
+        &VerifyingOptions {
+            strict_hash_byte_length: false,
+            ..Default::default()
+        }
+    )
+    .unwrap());
 }
 
 #[test]
@@ -115,7 +127,16 @@ fn test_ecdsa_p256_sha384_sign() {
     assert_eq!(signature.to_p1363_hex(), signature_expected);
 
     let public_key = private_key.public_key();
-    assert!(verify(hash, &signature, &public_key).unwrap());
+    assert!(verify_with_options(
+        hash,
+        &signature,
+        &public_key,
+        &VerifyingOptions {
+            strict_hash_byte_length: false,
+            ..Default::default()
+        }
+    )
+    .unwrap());
 }
 
 #[test]
@@ -150,5 +171,14 @@ fn test_ecdsa_p256_sha512_sign() {
     assert_eq!(signature.to_p1363_hex(), signature_expected);
 
     let public_key = private_key.public_key();
-    assert!(verify(hash, &signature, &public_key).unwrap());
+    assert!(verify_with_options(
+        hash,
+        &signature,
+        &public_key,
+        &VerifyingOptions {
+            strict_hash_byte_length: false,
+            ..Default::default()
+        }
+    )
+    .unwrap());
 }
