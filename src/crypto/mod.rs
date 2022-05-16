@@ -7,6 +7,7 @@
 pub mod codecs;
 pub mod ecdsa;
 mod elliptic_curve_params;
+pub mod hash;
 pub(crate) mod p1363;
 mod rfc6979;
 mod sec1;

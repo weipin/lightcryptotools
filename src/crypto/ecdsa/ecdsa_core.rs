@@ -11,7 +11,6 @@ use crate::crypto::elliptic_curve_params::EllipticCurveParams;
 use crate::math::modular::{invert, modulo};
 
 #[derive(Clone, Debug)]
-#[non_exhaustive]
 pub struct Signature<'a> {
     pub r: BigInt,
     pub s: BigInt,

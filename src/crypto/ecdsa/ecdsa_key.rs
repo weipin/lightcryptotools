@@ -8,14 +8,12 @@ use crate::bigint::BigInt;
 use crate::crypto::elliptic_curve_params::EllipticCurveParams;
 use crate::math::elliptic_curve::Point;
 
-#[non_exhaustive]
 pub struct PrivateKey<'a> {
     pub data: BigInt,
     pub curve_params: &'a EllipticCurveParams,
 }
 
 #[derive(Debug, PartialEq)]
-#[non_exhaustive]
 pub struct PublicKey<'a> {
     pub data: Point,
     pub curve_params: &'a EllipticCurveParams,

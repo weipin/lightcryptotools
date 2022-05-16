@@ -14,51 +14,7 @@ use lightcryptotools::crypto::ecdsa::{
     VerifyingOptions,
 };
 use ring::digest;
-use ring::hmac::{HMAC_SHA1_FOR_LEGACY_USE_ONLY, HMAC_SHA256, HMAC_SHA384, HMAC_SHA512};
-
-#[test]
-fn test_ecdsa_p256_sha1_sign() {
-    let curve = nist_p256();
-    let d =
-        BigInt::from_hex("C9AFA9D845BA75166B5C215767B1D6934E50C3DB36E89B127B8A622B120F6721")
-            .unwrap();
-    let private_key = PrivateKey::new(d, &curve).unwrap();
-    let signature_expected = concat!(
-        "61340c88c3aaebeb4f6d667f672ca9759a6ccaa9fa8811313039ee4a35471d32",
-        "6d7f147dac089441bb2e2fe8f7a3fa264b9c475098fdcf6e00d7c996e1b8b7eb"
-    );
-
-    let message = b"sample";
-    let mut context = digest::Context::new(&digest::SHA1_FOR_LEGACY_USE_ONLY);
-    context.update(message);
-    let digest = context.finish();
-    let hash = digest.as_ref();
-
-    let signature = sign_with_options(
-        hash,
-        &private_key,
-        &SigningOptions {
-            hmac_hash_algorithm: &HMAC_SHA1_FOR_LEGACY_USE_ONLY,
-            enforce_low_s: false,
-            strict_hash_byte_length: false,
-            employ_extra_random_data: false,
-        },
-    )
-    .unwrap();
-    assert_eq!(signature.to_p1363_hex(), signature_expected);
-
-    let public_key = private_key.public_key();
-    assert!(verify_with_options(
-        hash,
-        &signature,
-        &public_key,
-        &VerifyingOptions {
-            strict_hash_byte_length: false,
-            ..Default::default()
-        }
-    )
-    .unwrap());
-}
+use ring::hmac::{HMAC_SHA256, HMAC_SHA384, HMAC_SHA512};
 
 #[test]
 fn test_ecdsa_p256_sha256_sign() {

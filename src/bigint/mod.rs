@@ -23,7 +23,7 @@ mod len;
 pub(crate) mod math;
 mod mul;
 mod neg;
-mod shift;
+pub(crate) mod shift;
 mod sub;
 mod zero;
 

@@ -4,10 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-mod curves;
-mod ecdsa_p256_signing_verifying;
-mod ecdsa_verifying_wycheproof;
-mod hmac_wycheproof;
-mod secp256k1_key;
-mod secp256k1_sec1;
-mod secp256k1_signing_verifying;
+pub trait UnkeyedHash {
+    const MESSAGE_BLOCK_BYTE_LENGTH: usize;
+    const DIGEST_OUTPUT_BYTE_LENGTH: usize;
+
+    fn digest<T: AsRef<[u8]>>(&mut self, message: T) -> Vec<u8>;
+}
