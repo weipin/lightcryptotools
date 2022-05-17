@@ -4,6 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use super::core::rnd;
 ///! Implements SHA-384 and SHA-512
 ///
 /// https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
@@ -162,22 +163,91 @@ fn sha384_512_digest_core(
         let mut g = s[6];
         let mut h = s[7];
 
-        for i in 0..80 {
-            let t1 = h
-                .wrapping_add(sigma1(e))
-                .wrapping_add(ch(e, f, g))
-                .wrapping_add(K[i])
-                .wrapping_add(w[i]);
-            let t2 = sigma0(a).wrapping_add(maj(a, b, c));
-            h = g;
-            g = f;
-            f = e;
-            e = d.wrapping_add(t1);
-            d = c;
-            c = b;
-            b = a;
-            a = t1.wrapping_add(t2);
-        }
+        // Exchanges readability and code size for slight performance improvement.
+        // It's done by executing the compression without all of the variable swaps,
+        // a trick learned from libtomcrypt[1]
+        //
+        // [1]: https://github.com/libtom/libtomcrypt/blob/7e7eb695d581782f04b24dc444cbfde86af59853/src/hashes/sha2/sha512.c#L130
+        rnd!(a, b, c, d, e, f, g, h, w, 0, 0x428a2f98d728ae22);
+        rnd!(h, a, b, c, d, e, f, g, w, 1, 0x7137449123ef65cd);
+        rnd!(g, h, a, b, c, d, e, f, w, 2, 0xb5c0fbcfec4d3b2f);
+        rnd!(f, g, h, a, b, c, d, e, w, 3, 0xe9b5dba58189dbbc);
+        rnd!(e, f, g, h, a, b, c, d, w, 4, 0x3956c25bf348b538);
+        rnd!(d, e, f, g, h, a, b, c, w, 5, 0x59f111f1b605d019);
+        rnd!(c, d, e, f, g, h, a, b, w, 6, 0x923f82a4af194f9b);
+        rnd!(b, c, d, e, f, g, h, a, w, 7, 0xab1c5ed5da6d8118);
+        rnd!(a, b, c, d, e, f, g, h, w, 8, 0xd807aa98a3030242);
+        rnd!(h, a, b, c, d, e, f, g, w, 9, 0x12835b0145706fbe);
+        rnd!(g, h, a, b, c, d, e, f, w, 10, 0x243185be4ee4b28c);
+        rnd!(f, g, h, a, b, c, d, e, w, 11, 0x550c7dc3d5ffb4e2);
+        rnd!(e, f, g, h, a, b, c, d, w, 12, 0x72be5d74f27b896f);
+        rnd!(d, e, f, g, h, a, b, c, w, 13, 0x80deb1fe3b1696b1);
+        rnd!(c, d, e, f, g, h, a, b, w, 14, 0x9bdc06a725c71235);
+        rnd!(b, c, d, e, f, g, h, a, w, 15, 0xc19bf174cf692694);
+        rnd!(a, b, c, d, e, f, g, h, w, 16, 0xe49b69c19ef14ad2);
+        rnd!(h, a, b, c, d, e, f, g, w, 17, 0xefbe4786384f25e3);
+        rnd!(g, h, a, b, c, d, e, f, w, 18, 0x0fc19dc68b8cd5b5);
+        rnd!(f, g, h, a, b, c, d, e, w, 19, 0x240ca1cc77ac9c65);
+        rnd!(e, f, g, h, a, b, c, d, w, 20, 0x2de92c6f592b0275);
+        rnd!(d, e, f, g, h, a, b, c, w, 21, 0x4a7484aa6ea6e483);
+        rnd!(c, d, e, f, g, h, a, b, w, 22, 0x5cb0a9dcbd41fbd4);
+        rnd!(b, c, d, e, f, g, h, a, w, 23, 0x76f988da831153b5);
+        rnd!(a, b, c, d, e, f, g, h, w, 24, 0x983e5152ee66dfab);
+        rnd!(h, a, b, c, d, e, f, g, w, 25, 0xa831c66d2db43210);
+        rnd!(g, h, a, b, c, d, e, f, w, 26, 0xb00327c898fb213f);
+        rnd!(f, g, h, a, b, c, d, e, w, 27, 0xbf597fc7beef0ee4);
+        rnd!(e, f, g, h, a, b, c, d, w, 28, 0xc6e00bf33da88fc2);
+        rnd!(d, e, f, g, h, a, b, c, w, 29, 0xd5a79147930aa725);
+        rnd!(c, d, e, f, g, h, a, b, w, 30, 0x06ca6351e003826f);
+        rnd!(b, c, d, e, f, g, h, a, w, 31, 0x142929670a0e6e70);
+        rnd!(a, b, c, d, e, f, g, h, w, 32, 0x27b70a8546d22ffc);
+        rnd!(h, a, b, c, d, e, f, g, w, 33, 0x2e1b21385c26c926);
+        rnd!(g, h, a, b, c, d, e, f, w, 34, 0x4d2c6dfc5ac42aed);
+        rnd!(f, g, h, a, b, c, d, e, w, 35, 0x53380d139d95b3df);
+        rnd!(e, f, g, h, a, b, c, d, w, 36, 0x650a73548baf63de);
+        rnd!(d, e, f, g, h, a, b, c, w, 37, 0x766a0abb3c77b2a8);
+        rnd!(c, d, e, f, g, h, a, b, w, 38, 0x81c2c92e47edaee6);
+        rnd!(b, c, d, e, f, g, h, a, w, 39, 0x92722c851482353b);
+        rnd!(a, b, c, d, e, f, g, h, w, 40, 0xa2bfe8a14cf10364);
+        rnd!(h, a, b, c, d, e, f, g, w, 41, 0xa81a664bbc423001);
+        rnd!(g, h, a, b, c, d, e, f, w, 42, 0xc24b8b70d0f89791);
+        rnd!(f, g, h, a, b, c, d, e, w, 43, 0xc76c51a30654be30);
+        rnd!(e, f, g, h, a, b, c, d, w, 44, 0xd192e819d6ef5218);
+        rnd!(d, e, f, g, h, a, b, c, w, 45, 0xd69906245565a910);
+        rnd!(c, d, e, f, g, h, a, b, w, 46, 0xf40e35855771202a);
+        rnd!(b, c, d, e, f, g, h, a, w, 47, 0x106aa07032bbd1b8);
+        rnd!(a, b, c, d, e, f, g, h, w, 48, 0x19a4c116b8d2d0c8);
+        rnd!(h, a, b, c, d, e, f, g, w, 49, 0x1e376c085141ab53);
+        rnd!(g, h, a, b, c, d, e, f, w, 50, 0x2748774cdf8eeb99);
+        rnd!(f, g, h, a, b, c, d, e, w, 51, 0x34b0bcb5e19b48a8);
+        rnd!(e, f, g, h, a, b, c, d, w, 52, 0x391c0cb3c5c95a63);
+        rnd!(d, e, f, g, h, a, b, c, w, 53, 0x4ed8aa4ae3418acb);
+        rnd!(c, d, e, f, g, h, a, b, w, 54, 0x5b9cca4f7763e373);
+        rnd!(b, c, d, e, f, g, h, a, w, 55, 0x682e6ff3d6b2b8a3);
+        rnd!(a, b, c, d, e, f, g, h, w, 56, 0x748f82ee5defb2fc);
+        rnd!(h, a, b, c, d, e, f, g, w, 57, 0x78a5636f43172f60);
+        rnd!(g, h, a, b, c, d, e, f, w, 58, 0x84c87814a1f0ab72);
+        rnd!(f, g, h, a, b, c, d, e, w, 59, 0x8cc702081a6439ec);
+        rnd!(e, f, g, h, a, b, c, d, w, 60, 0x90befffa23631e28);
+        rnd!(d, e, f, g, h, a, b, c, w, 61, 0xa4506cebde82bde9);
+        rnd!(c, d, e, f, g, h, a, b, w, 62, 0xbef9a3f7b2c67915);
+        rnd!(b, c, d, e, f, g, h, a, w, 63, 0xc67178f2e372532b);
+        rnd!(a, b, c, d, e, f, g, h, w, 64, 0xca273eceea26619c);
+        rnd!(h, a, b, c, d, e, f, g, w, 65, 0xd186b8c721c0c207);
+        rnd!(g, h, a, b, c, d, e, f, w, 66, 0xeada7dd6cde0eb1e);
+        rnd!(f, g, h, a, b, c, d, e, w, 67, 0xf57d4f7fee6ed178);
+        rnd!(e, f, g, h, a, b, c, d, w, 68, 0x06f067aa72176fba);
+        rnd!(d, e, f, g, h, a, b, c, w, 69, 0x0a637dc5a2c898a6);
+        rnd!(c, d, e, f, g, h, a, b, w, 70, 0x113f9804bef90dae);
+        rnd!(b, c, d, e, f, g, h, a, w, 71, 0x1b710b35131c471b);
+        rnd!(a, b, c, d, e, f, g, h, w, 72, 0x28db77f523047d84);
+        rnd!(h, a, b, c, d, e, f, g, w, 73, 0x32caab7b40c72493);
+        rnd!(g, h, a, b, c, d, e, f, w, 74, 0x3c9ebe0a15c9bebc);
+        rnd!(f, g, h, a, b, c, d, e, w, 75, 0x431d67c49c100d4c);
+        rnd!(e, f, g, h, a, b, c, d, w, 76, 0x4cc5d4becb3e42b6);
+        rnd!(d, e, f, g, h, a, b, c, w, 77, 0x597f299cfc657e2a);
+        rnd!(c, d, e, f, g, h, a, b, w, 78, 0x5fcb6fab3ad6faec);
+        rnd!(b, c, d, e, f, g, h, a, w, 79, 0x6c44198c4a475817);
 
         s[0] = a.wrapping_add(s[0]);
         s[1] = b.wrapping_add(s[1]);
@@ -248,30 +318,6 @@ static S_SHA512: [u64; 8] = [
     0x9b05688c2b3e6c1f,
     0x1f83d9abfb41bd6b,
     0x5be0cd19137e2179,
-];
-
-#[rustfmt::skip]
-static K: [u64; 80] = [
-    0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc,
-    0x3956c25bf348b538, 0x59f111f1b605d019, 0x923f82a4af194f9b, 0xab1c5ed5da6d8118,
-    0xd807aa98a3030242, 0x12835b0145706fbe, 0x243185be4ee4b28c, 0x550c7dc3d5ffb4e2,
-    0x72be5d74f27b896f, 0x80deb1fe3b1696b1, 0x9bdc06a725c71235, 0xc19bf174cf692694,
-    0xe49b69c19ef14ad2, 0xefbe4786384f25e3, 0x0fc19dc68b8cd5b5, 0x240ca1cc77ac9c65,
-    0x2de92c6f592b0275, 0x4a7484aa6ea6e483, 0x5cb0a9dcbd41fbd4, 0x76f988da831153b5,
-    0x983e5152ee66dfab, 0xa831c66d2db43210, 0xb00327c898fb213f, 0xbf597fc7beef0ee4,
-    0xc6e00bf33da88fc2, 0xd5a79147930aa725, 0x06ca6351e003826f, 0x142929670a0e6e70,
-    0x27b70a8546d22ffc, 0x2e1b21385c26c926, 0x4d2c6dfc5ac42aed, 0x53380d139d95b3df,
-    0x650a73548baf63de, 0x766a0abb3c77b2a8, 0x81c2c92e47edaee6, 0x92722c851482353b,
-    0xa2bfe8a14cf10364, 0xa81a664bbc423001, 0xc24b8b70d0f89791, 0xc76c51a30654be30,
-    0xd192e819d6ef5218, 0xd69906245565a910, 0xf40e35855771202a, 0x106aa07032bbd1b8,
-    0x19a4c116b8d2d0c8, 0x1e376c085141ab53, 0x2748774cdf8eeb99, 0x34b0bcb5e19b48a8,
-    0x391c0cb3c5c95a63, 0x4ed8aa4ae3418acb, 0x5b9cca4f7763e373, 0x682e6ff3d6b2b8a3,
-    0x748f82ee5defb2fc, 0x78a5636f43172f60, 0x84c87814a1f0ab72, 0x8cc702081a6439ec,
-    0x90befffa23631e28, 0xa4506cebde82bde9, 0xbef9a3f7b2c67915, 0xc67178f2e372532b,
-    0xca273eceea26619c, 0xd186b8c721c0c207, 0xeada7dd6cde0eb1e, 0xf57d4f7fee6ed178,
-    0x06f067aa72176fba, 0x0a637dc5a2c898a6, 0x113f9804bef90dae, 0x1b710b35131c471b,
-    0x28db77f523047d84, 0x32caab7b40c72493, 0x3c9ebe0a15c9bebc, 0x431d67c49c100d4c,
-    0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817,
 ];
 
 #[cfg(test)]
