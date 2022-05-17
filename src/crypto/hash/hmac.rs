@@ -64,7 +64,6 @@ pub fn hmac<T: AsRef<[u8]>, S: AsRef<[u8]>, H: UnkeyedHash>(
 
     // Step 9: applies H to the result from step 8
     // H(`k0` XOR `opad` || H(`k0` XOR `ipad` || `message`))
-
     hasher.digest(&t)
 }
 

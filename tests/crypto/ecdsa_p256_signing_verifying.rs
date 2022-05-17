@@ -10,11 +10,10 @@
 use crate::curves::nist_p256;
 use lightcryptotools::bigint::BigInt;
 use lightcryptotools::crypto::ecdsa::{
-    sign_with_options, verify, verify_with_options, PrivateKey, SigningOptions,
-    VerifyingOptions,
+    sign_with_options, sign_with_options_and_rfc6979_hmac_hasher, verify, verify_with_options,
+    PrivateKey, SigningOptions, VerifyingOptions,
 };
-use ring::digest;
-use ring::hmac::{HMAC_SHA256, HMAC_SHA384, HMAC_SHA512};
+use lightcryptotools::crypto::hash::{Sha256, Sha384, Sha512, UnkeyedHash};
 
 #[test]
 fn test_ecdsa_p256_sha256_sign() {
@@ -28,17 +27,11 @@ fn test_ecdsa_p256_sha256_sign() {
         "f7cb1c942d657c41d436c7a1b6e29f65f3e900dbb9aff4064dc4ab2f843acda8"
     );
 
-    let message = b"sample";
-    let mut context = digest::Context::new(&digest::SHA256);
-    context.update(message);
-    let digest = context.finish();
-    let hash = digest.as_ref();
-
+    let hash = Sha256::new().digest("sample");
     let signature = sign_with_options(
-        hash,
+        &hash,
         &private_key,
         &SigningOptions {
-            hmac_hash_algorithm: &HMAC_SHA256,
             enforce_low_s: false,
             employ_extra_random_data: false,
             ..Default::default()
@@ -48,7 +41,7 @@ fn test_ecdsa_p256_sha256_sign() {
     assert_eq!(signature.to_p1363_hex(), signature_expected);
 
     let public_key = private_key.public_key();
-    assert!(verify(hash, &signature, &public_key).unwrap());
+    assert!(verify(&hash, &signature, &public_key).unwrap());
 }
 
 #[test]
@@ -63,28 +56,24 @@ fn test_ecdsa_p256_sha384_sign() {
         "4861f0491e6998b9455193e34e7b0d284ddd7149a74b95b9261f13abde940954"
     );
 
-    let message = b"sample";
-    let mut context = digest::Context::new(&digest::SHA384);
-    context.update(message);
-    let digest = context.finish();
-    let hash = digest.as_ref();
-
-    let signature = sign_with_options(
-        hash,
+    let mut hasher = Sha384::new();
+    let hash = hasher.digest("sample");
+    let signature = sign_with_options_and_rfc6979_hmac_hasher(
+        &hash,
         &private_key,
         &SigningOptions {
-            hmac_hash_algorithm: &HMAC_SHA384,
             enforce_low_s: false,
             strict_hash_byte_length: false,
             employ_extra_random_data: false,
         },
+        &mut hasher,
     )
     .unwrap();
     assert_eq!(signature.to_p1363_hex(), signature_expected);
 
     let public_key = private_key.public_key();
     assert!(verify_with_options(
-        hash,
+        &hash,
         &signature,
         &public_key,
         &VerifyingOptions {
@@ -107,28 +96,24 @@ fn test_ecdsa_p256_sha512_sign() {
         "2362ab1adbe2b8adf9cb9edab740ea6049c028114f2460f96554f61fae3302fe"
     );
 
-    let message = b"sample";
-    let mut context = digest::Context::new(&digest::SHA512);
-    context.update(message);
-    let digest = context.finish();
-    let hash = digest.as_ref();
-
-    let signature = sign_with_options(
-        hash,
+    let mut hasher = Sha512::new();
+    let hash = hasher.digest("sample");
+    let signature = sign_with_options_and_rfc6979_hmac_hasher(
+        &hash,
         &private_key,
         &SigningOptions {
-            hmac_hash_algorithm: &HMAC_SHA512,
             enforce_low_s: false,
             strict_hash_byte_length: false,
             employ_extra_random_data: false,
         },
+        &mut hasher,
     )
     .unwrap();
     assert_eq!(signature.to_p1363_hex(), signature_expected);
 
     let public_key = private_key.public_key();
     assert!(verify_with_options(
-        hash,
+        &hash,
         &signature,
         &public_key,
         &VerifyingOptions {

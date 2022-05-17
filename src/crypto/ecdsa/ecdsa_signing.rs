@@ -8,8 +8,8 @@ use crate::bigint::bigint_core::Sign;
 use crate::bigint::BigInt;
 use crate::crypto::ecdsa::ecdsa_core::Signature;
 use crate::crypto::ecdsa::ecdsa_key::PrivateKey;
+use crate::crypto::hash::{Sha256, UnkeyedHash};
 use crate::crypto::rfc6979::{GenerateNonceError, Rfc6979};
-use ring::hmac;
 use std::fmt;
 use std::fmt::Display;
 
@@ -51,6 +51,15 @@ pub fn sign_with_options<'a>(
     private_key: &'a PrivateKey,
     options: &SigningOptions,
 ) -> Result<Signature<'a>, SigningError> {
+    sign_with_options_and_rfc6979_hmac_hasher(hash, private_key, options, &mut Sha256::new())
+}
+
+pub fn sign_with_options_and_rfc6979_hmac_hasher<'a, H: UnkeyedHash>(
+    hash: &[u8],
+    private_key: &'a PrivateKey,
+    options: &SigningOptions,
+    hmac_hasher: &mut H,
+) -> Result<Signature<'a>, SigningError> {
     if hash.is_empty() {
         return Err(SigningError::EmptyHash);
     }
@@ -81,7 +90,7 @@ pub fn sign_with_options<'a>(
     loop {
         // TODO: Fix the Minerva vulnerability
         // https://minerva.crocs.fi.muni.cz/
-        let k = match rfc6979.generate_nonce(hash, private_key, options.hmac_hash_algorithm) {
+        let k = match rfc6979.generate_nonce(hash, private_key, hmac_hasher) {
             Ok(nonce) => nonce,
             Err(err) => {
                 return Err(SigningError::FailedToGenerateNonce(err));
@@ -98,7 +107,6 @@ pub fn sign_with_options<'a>(
 }
 
 pub struct SigningOptions {
-    pub hmac_hash_algorithm: &'static hmac::Algorithm,
     pub enforce_low_s: bool,
     pub strict_hash_byte_length: bool,
     pub employ_extra_random_data: bool,
@@ -107,7 +115,6 @@ pub struct SigningOptions {
 impl Default for SigningOptions {
     fn default() -> Self {
         Self {
-            hmac_hash_algorithm: &hmac::HMAC_SHA256,
             enforce_low_s: true,
             strict_hash_byte_length: true,
             employ_extra_random_data: true,

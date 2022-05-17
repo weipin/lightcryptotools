@@ -10,91 +10,85 @@ use lightcryptotools::crypto::codecs::hex_to_bytes;
 use lightcryptotools::crypto::ecdsa::{
     verify_with_options, PublicKey, Signature, VerifyingOptions,
 };
+use lightcryptotools::crypto::hash::{Sha256, Sha384, Sha512, UnkeyedHash};
 use lightcryptotools::crypto::{secp256k1, EllipticCurveParams};
-use ring::digest;
 use serde_json::Value;
 use std::fs::File;
 
 #[test]
 #[ignore]
 fn test_ecdsa_wycheproof() {
-    let data = [
-        (
-            &brainpool_p256r1(),
-            "ecdsa_brainpoolP256r1_sha256_p1363_test.json",
-            &digest::SHA256,
-        ),
-        (
-            &brainpool_p320r1(),
-            "ecdsa_brainpoolP320r1_sha384_p1363_test.json",
-            &digest::SHA384,
-        ),
-        (
-            &brainpool_p384r1(),
-            "ecdsa_brainpoolP384r1_sha384_p1363_test.json",
-            &digest::SHA384,
-        ),
-        (
-            &brainpool_p512r1(),
-            "ecdsa_brainpoolP512r1_sha512_p1363_test.json",
-            &digest::SHA512,
-        ),
-        (
-            &secp224r1(),
-            "ecdsa_secp224r1_sha256_p1363_test.json",
-            &digest::SHA256,
-        ),
-        (
-            &secp224r1(),
-            "ecdsa_secp224r1_sha512_p1363_test.json",
-            &digest::SHA512,
-        ),
-        (
-            secp256k1(),
-            "ecdsa_secp256k1_sha256_p1363_test.json",
-            &digest::SHA256,
-        ),
-        (
-            secp256k1(),
-            "ecdsa_secp256k1_sha512_p1363_test.json",
-            &digest::SHA512,
-        ),
-        (
-            &secp256r1(),
-            "ecdsa_secp256r1_sha256_p1363_test.json",
-            &digest::SHA256,
-        ),
-        (
-            &secp256r1(),
-            "ecdsa_secp256r1_sha512_p1363_test.json",
-            &digest::SHA512,
-        ),
-        (
-            &secp384r1(),
-            "ecdsa_secp384r1_sha384_p1363_test.json",
-            &digest::SHA384,
-        ),
-        (
-            &secp384r1(),
-            "ecdsa_secp384r1_sha512_p1363_test.json",
-            &digest::SHA512,
-        ),
-        (
-            &secp521r1(),
-            "ecdsa_secp521r1_sha512_p1363_test.json",
-            &digest::SHA512,
-        ),
-    ];
-
-    for (curve, data_filename, algorithm) in data {
-        test_ecdsa_wycheproof_p1363(curve, data_filename, algorithm);
-    }
+    test_ecdsa_wycheproof_p1363(
+        &brainpool_p256r1(),
+        "ecdsa_brainpoolP256r1_sha256_p1363_test.json",
+        &mut Sha256::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        &brainpool_p320r1(),
+        "ecdsa_brainpoolP320r1_sha384_p1363_test.json",
+        &mut Sha384::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        &brainpool_p384r1(),
+        "ecdsa_brainpoolP384r1_sha384_p1363_test.json",
+        &mut Sha384::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        &brainpool_p512r1(),
+        "ecdsa_brainpoolP512r1_sha512_p1363_test.json",
+        &mut Sha512::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        &secp224r1(),
+        "ecdsa_secp224r1_sha256_p1363_test.json",
+        &mut Sha256::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        &secp224r1(),
+        "ecdsa_secp224r1_sha512_p1363_test.json",
+        &mut Sha512::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        secp256k1(),
+        "ecdsa_secp256k1_sha256_p1363_test.json",
+        &mut Sha256::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        secp256k1(),
+        "ecdsa_secp256k1_sha512_p1363_test.json",
+        &mut Sha512::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        &secp256r1(),
+        "ecdsa_secp256r1_sha256_p1363_test.json",
+        &mut Sha256::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        &secp256r1(),
+        "ecdsa_secp256r1_sha512_p1363_test.json",
+        &mut Sha512::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        &secp384r1(),
+        "ecdsa_secp384r1_sha384_p1363_test.json",
+        &mut Sha384::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        &secp384r1(),
+        "ecdsa_secp384r1_sha512_p1363_test.json",
+        &mut Sha512::new(),
+    );
+    test_ecdsa_wycheproof_p1363(
+        &secp521r1(),
+        "ecdsa_secp521r1_sha512_p1363_test.json",
+        &mut Sha512::new(),
+    );
 }
 
-fn test_ecdsa_wycheproof_p1363(
+fn test_ecdsa_wycheproof_p1363<H: UnkeyedHash>(
     curve: &EllipticCurveParams,
     data_filename: &str,
-    algorithm: &'static digest::Algorithm,
+    hasher: &mut H,
 ) {
     let path = integration_testing_data_path(&format!("crypto/wycheproof/{data_filename}"));
     let file = File::open(path).unwrap();
@@ -119,15 +113,11 @@ fn test_ecdsa_wycheproof_p1363(
                 }
             };
 
-            let mut context = digest::Context::new(algorithm);
-            context.update(&hex_to_bytes(m_hex).unwrap());
-            let digest = context.finish();
-            let hash = digest.as_ref();
-
+            let hash = hasher.digest(&hex_to_bytes(m_hex).unwrap());
             let enforce_low_s = false;
             let strict_hash_byte_length = false;
             let result = verify_with_options(
-                hash,
+                &hash,
                 &signature,
                 &public_key,
                 &VerifyingOptions {

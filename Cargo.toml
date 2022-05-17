@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ring = "0.16.20"
 
 [dev-dependencies]
 devtools = { path = "./crates/devtools" }

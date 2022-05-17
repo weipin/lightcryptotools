@@ -4,18 +4,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+///! Implements RFC 6979
 use crate::bigint::bigint_core::{BigInt, Sign};
 use crate::crypto::ecdsa::PrivateKey;
+use crate::crypto::hash::{hmac, UnkeyedHash};
 use crate::random;
 use crate::random::GetOsRandomBytesError;
-use ring::hmac;
-use ring::hmac::Algorithm;
 use std::fmt;
 use std::fmt::Display;
-
-// Generate k with extra random data.
-// https://link.springer.com/chapter/10.1007/978-3-319-44524-3_11
-// https://github.com/openssl/openssl/commit/190c615d4398cc6c8b61eb7881d7409314529a75
 
 pub(crate) struct Rfc6979 {
     // Base point order of the elliptic curve domain parameters.
@@ -62,15 +58,13 @@ impl Rfc6979 {
         }
     }
 
-    pub(crate) fn generate_nonce(
+    pub(crate) fn generate_nonce<H: UnkeyedHash>(
         &self,
         hash: &[u8],
         private_key: &PrivateKey,
-        algorithm: &'static Algorithm,
+        hasher: &mut H,
     ) -> Result<BigInt, GenerateNonceError> {
         debug_assert_eq!(self.q, private_key.curve_params.base_point_order);
-
-        let hash_size = algorithm.digest_algorithm().output_len;
 
         let mut key_and_msg = self.int2octets(&private_key.data);
         key_and_msg.extend_from_slice(&self.bits2octets(hash));
@@ -85,31 +79,37 @@ impl Rfc6979 {
             }
         }
 
-        let v = vec![1_u8; hash_size];
-        let k = vec![0_u8; hash_size];
+        let mut v = vec![1_u8; H::DIGEST_OUTPUT_BYTE_LENGTH];
+        let mut k = vec![0_u8; H::DIGEST_OUTPUT_BYTE_LENGTH];
 
-        let key = hmac::Key::new(*algorithm, &k);
+        // K = HMAC_K(V || 0x00 || int2octets(x) || bits2octets(h1))
         let mut t = v.clone();
         t.push(0);
-        t.extend_from_slice(&key_and_msg);
-        let k_tag = hmac::sign(&key, &t);
-        let key = hmac::Key::new(*algorithm, k_tag.as_ref());
-        let v_tag = hmac::sign(&key, &v);
+        t.extend(&key_and_msg);
+        k = hmac(&k, &t, hasher);
 
-        let key = hmac::Key::new(*algorithm, k_tag.as_ref());
-        let mut t = v_tag.as_ref().to_vec();
+        // V = HMAC_K(V)
+        v = hmac(&k, &v, hasher);
+
+        // K = HMAC_K(V || 0x01 || int2octets(x) || bits2octets(h1))
+        t.clear();
+        t.extend(&v);
         t.push(1);
-        t.extend_from_slice(&key_and_msg);
-        let mut k_tag = hmac::sign(&key, &t);
-        let key = hmac::Key::new(*algorithm, k_tag.as_ref());
-        let mut v_tag = hmac::sign(&key, v_tag.as_ref());
+        t.extend(&key_and_msg);
+        k = hmac(&k, &t, hasher);
 
-        let mut key = hmac::Key::new(*algorithm, k_tag.as_ref());
+        // V = HMAC_K(V)
+        v = hmac(&k, &v, hasher);
+
         loop {
-            let mut t: Vec<u8> = vec![];
+            // Set T to the empty sequence
+            t.clear();
+
+            // While tlen < qlen
             while t.len() * 8 < self.qlen {
-                v_tag = hmac::sign(&key, v_tag.as_ref());
-                t.extend(v_tag.as_ref());
+                // V = HMAC_K(V)
+                v = hmac(&k, &v, hasher);
+                t.extend(&v);
             }
 
             let nonce = self.bits2int(&t);
@@ -117,11 +117,13 @@ impl Rfc6979 {
                 return Ok(nonce);
             }
 
-            let mut t = v_tag.as_ref().to_vec();
+            // K = HMAC_K(V || 0x00)
+            t.clear();
+            t.extend(&v);
             t.push(0);
-            k_tag = hmac::sign(&key, &t);
-            key = hmac::Key::new(*algorithm, k_tag.as_ref());
-            v_tag = hmac::sign(&key, v_tag.as_ref());
+            k = hmac(&k, &t, hasher);
+            // V = HMAC_K(V)
+            v = hmac(&k, &v, hasher);
         }
     }
 
@@ -163,7 +165,7 @@ mod tests {
     use super::*;
     use crate::crypto::ecdsa::PrivateKey;
     use crate::crypto::elliptic_curve_params::EllipticCurveParams;
-    use ring::digest;
+    use crate::crypto::hash::Sha256;
 
     #[test]
     fn test_generate_nonce() {
@@ -180,13 +182,9 @@ mod tests {
         .unwrap();
         let rfc6979 = Rfc6979::new(q, false);
 
-        let message = b"sample";
-        let mut context = digest::Context::new(&digest::SHA256);
-        context.update(message);
-        let digest = context.finish();
-        let hash = digest.as_ref();
-
-        let k = rfc6979.generate_nonce(hash, &private_key, &hmac::HMAC_SHA256);
+        let mut hasher = Sha256::new();
+        let hash = hasher.digest("sample");
+        let k = rfc6979.generate_nonce(&hash, &private_key, &mut hasher);
         assert_eq!(
             k.unwrap().to_hex(),
             "023af4074c90a02b3fe61d286d5c87f425e6bdd81b"
