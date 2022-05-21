@@ -11,3 +11,4 @@ mod hmac_wycheproof;
 mod secp256k1_key;
 mod secp256k1_sec1;
 mod secp256k1_signing_verifying;
+mod sha3_short_msg_kat;

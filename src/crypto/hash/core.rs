@@ -5,8 +5,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 pub trait UnkeyedHash {
-    const MESSAGE_BLOCK_BYTE_LENGTH: usize;
-    const DIGEST_OUTPUT_BYTE_LENGTH: usize;
+    const INPUT_BLOCK_BYTE_LENGTH: usize;
+    const OUTPUT_BYTE_LENGTH: usize;
 
     fn digest<T: AsRef<[u8]>>(&mut self, message: T) -> Vec<u8>;
 }

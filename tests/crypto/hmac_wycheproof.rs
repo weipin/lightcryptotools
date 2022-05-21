@@ -6,7 +6,9 @@
 
 use devtools::path::integration_testing_data_path;
 use lightcryptotools::crypto::codecs::{bytes_to_hex, hex_to_bytes};
-use lightcryptotools::crypto::hash::{hmac, Sha256, Sha384, Sha512, UnkeyedHash};
+use lightcryptotools::crypto::hash::{
+    hmac, Sha256, Sha384, Sha3_224, Sha3_256, Sha3_384, Sha3_512, Sha512, UnkeyedHash,
+};
 use serde_json::Value;
 use std::fs::File;
 
@@ -16,6 +18,10 @@ fn test_hmac_wycheproof() {
     test_hmac_wycheproof_core("hmac_sha256_test.json", &mut Sha256::new());
     test_hmac_wycheproof_core("hmac_sha384_test.json", &mut Sha384::new());
     test_hmac_wycheproof_core("hmac_sha512_test.json", &mut Sha512::new());
+    test_hmac_wycheproof_core("hmac_sha3_224_test.json", &mut Sha3_224::new());
+    test_hmac_wycheproof_core("hmac_sha3_256_test.json", &mut Sha3_256::new());
+    test_hmac_wycheproof_core("hmac_sha3_384_test.json", &mut Sha3_384::new());
+    test_hmac_wycheproof_core("hmac_sha3_512_test.json", &mut Sha3_512::new());
 }
 
 fn test_hmac_wycheproof_core<T: UnkeyedHash>(data_filename: &str, hasher: &mut T) {

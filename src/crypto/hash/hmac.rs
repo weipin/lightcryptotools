@@ -25,10 +25,10 @@ pub fn hmac<T: AsRef<[u8]>, S: AsRef<[u8]>, H: UnkeyedHash>(
 
     // Obtains `k0` from `key` (step 1, step 2, and step 3)
     let k0: Cow<[u8]> = {
-        match key.len().cmp(&H::MESSAGE_BLOCK_BYTE_LENGTH) {
+        match key.len().cmp(&H::INPUT_BLOCK_BYTE_LENGTH) {
             Ordering::Less => {
                 let mut t = key.to_vec();
-                t.extend(vec![0; H::MESSAGE_BLOCK_BYTE_LENGTH - key.len()]);
+                t.extend(vec![0; H::INPUT_BLOCK_BYTE_LENGTH - key.len()]);
                 t.into()
             }
             Ordering::Equal => key.into(),
@@ -38,7 +38,7 @@ pub fn hmac<T: AsRef<[u8]>, S: AsRef<[u8]>, H: UnkeyedHash>(
 
     let mut t = Vec::with_capacity(k0.len() + message.len());
     // Step 4: `k0` XOR `ipad`
-    t.extend_from_slice(&vec![0x36; H::MESSAGE_BLOCK_BYTE_LENGTH]);
+    t.extend_from_slice(&vec![0x36; H::INPUT_BLOCK_BYTE_LENGTH]);
     for (k0_element, t_element) in zip(k0.as_ref(), t.iter_mut()) {
         *t_element ^= k0_element;
     }
@@ -53,7 +53,7 @@ pub fn hmac<T: AsRef<[u8]>, S: AsRef<[u8]>, H: UnkeyedHash>(
 
     // Step 7: `k0` XOR `opad`
     t.clear();
-    t.extend_from_slice(&vec![0x5c; H::MESSAGE_BLOCK_BYTE_LENGTH]);
+    t.extend_from_slice(&vec![0x5c; H::INPUT_BLOCK_BYTE_LENGTH]);
     for (k0_element, t_element) in zip(k0.as_ref(), t.iter_mut()) {
         *t_element ^= k0_element;
     }

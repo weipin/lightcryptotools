@@ -504,15 +504,14 @@ mod tests {
         const TEST_NUMBER: u64 = 100;
 
         fn prop(d_hex: HexString) -> bool {
-            let secp256k1 = secp256k1();
-            let private_key = PrivateKey::new(
-                BigInt::from_hex(&d_hex.0).unwrap() % &secp256k1.base_point_order,
-                secp256k1,
-            )
-            .unwrap();
-            if private_key.data.is_zero() {
+            let d = BigInt::from_hex(d_hex.0).unwrap();
+            if d.is_zero() {
                 return true; // ignore
             }
+
+            let secp256k1 = secp256k1();
+            let private_key =
+                PrivateKey::new(d % &secp256k1.base_point_order, secp256k1).unwrap();
             let public_key = private_key.public_key();
             let hex = public_key.to_sec1_hex(true);
             let hex2 = PublicKey::from_sec1_hex(&hex, secp256k1)

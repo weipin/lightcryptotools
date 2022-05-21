@@ -79,8 +79,8 @@ impl Rfc6979 {
             }
         }
 
-        let mut v = vec![1_u8; H::DIGEST_OUTPUT_BYTE_LENGTH];
-        let mut k = vec![0_u8; H::DIGEST_OUTPUT_BYTE_LENGTH];
+        let mut v = vec![1_u8; H::OUTPUT_BYTE_LENGTH];
+        let mut k = vec![0_u8; H::OUTPUT_BYTE_LENGTH];
 
         // K = HMAC_K(V || 0x00 || int2octets(x) || bits2octets(h1))
         let mut t = v.clone();

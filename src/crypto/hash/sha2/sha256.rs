@@ -4,10 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use super::core::rnd;
 ///! Implements SHA-256
 ///
 /// https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
+use super::core::rnd;
 use crate::crypto::hash::core::UnkeyedHash;
 use std::iter::zip;
 
@@ -34,12 +34,12 @@ impl Default for Sha256 {
 }
 
 impl UnkeyedHash for Sha256 {
-    const MESSAGE_BLOCK_BYTE_LENGTH: usize = 64;
-    const DIGEST_OUTPUT_BYTE_LENGTH: usize = 32;
+    const INPUT_BLOCK_BYTE_LENGTH: usize = 64;
+    const OUTPUT_BYTE_LENGTH: usize = 32;
 
     fn digest<T: AsRef<[u8]>>(&mut self, message: T) -> Vec<u8> {
         let result = sha256_digest(message.as_ref(), &mut self.s, &mut self.w);
-        debug_assert_eq!(result.len(), Self::DIGEST_OUTPUT_BYTE_LENGTH);
+        debug_assert_eq!(result.len(), Self::OUTPUT_BYTE_LENGTH);
         result
     }
 }
@@ -73,8 +73,8 @@ fn sha256_digest(message: &[u8], s: &mut [u32; 8], w: &mut [u32; 64]) -> Vec<u8>
     message.extend_from_slice(&l.to_be_bytes());
 
     // Each block of message is 512-bit, that is [u8;64]
-    debug_assert!(message.len() % Sha256::MESSAGE_BLOCK_BYTE_LENGTH == 0);
-    for block in message.chunks_exact(Sha256::MESSAGE_BLOCK_BYTE_LENGTH) {
+    debug_assert!(message.len() % Sha256::INPUT_BLOCK_BYTE_LENGTH == 0);
+    for block in message.chunks_exact(Sha256::INPUT_BLOCK_BYTE_LENGTH) {
         // Loads the 64-byte message block into w[0..15] in big-endian order
         for (u32_bytes, w_iter) in zip(
             block.chunks_exact(std::mem::size_of::<u32>()),
@@ -233,8 +233,8 @@ static S_SHA256: [u32; 8] = [
 mod tests {
     use super::*;
     use crate::crypto::codecs::bytes_to_hex;
-    use ::quickcheck_macros::quickcheck;
-    use ring::digest;
+    use quickcheck::{Gen, QuickCheck};
+    use rust_crypto_sha2::Digest;
 
     #[test]
     fn test_sha256_examples() {
@@ -270,22 +270,32 @@ mod tests {
             bytes.push(u8::MAX);
             let digest = sha256.digest(&bytes);
 
-            let mut context = digest::Context::new(&digest::SHA256);
-            context.update(&bytes);
-            let digest2 = context.finish();
+            let mut hasher = rust_crypto_sha2::Sha256::new();
+            hasher.update(&bytes);
+            let digest2 = hasher.finalize();
 
-            assert_eq!(digest, digest2.as_ref())
+            assert_eq!(bytes_to_hex(&digest), bytes_to_hex(&digest2))
         }
     }
 
-    #[quickcheck]
-    fn test_sha256_against_another_implementation(bytes: Vec<u8>) -> bool {
-        let digest = Sha256::new().digest(&bytes);
+    #[test]
+    fn test_sha256_against_another_implementation() {
+        const TEST_NUMBER: u64 = 2000;
+        const GEN_SIZE: usize = 1024 * 10;
 
-        let mut context = digest::Context::new(&digest::SHA256);
-        context.update(&bytes);
-        let digest2 = context.finish();
+        fn prop(bytes: Vec<u8>) -> bool {
+            let digest = Sha256::new().digest(&bytes);
 
-        digest == digest2.as_ref()
+            let mut hasher = rust_crypto_sha2::Sha256::new();
+            hasher.update(&bytes);
+            let digest2 = hasher.finalize();
+
+            bytes_to_hex(&digest) == bytes_to_hex(&digest2)
+        }
+
+        QuickCheck::new()
+            .gen(Gen::new(GEN_SIZE))
+            .tests(TEST_NUMBER)
+            .quickcheck(prop as fn(bytes: Vec<u8>) -> bool)
     }
 }
