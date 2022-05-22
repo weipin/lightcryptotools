@@ -7,6 +7,8 @@
 ///! Implements SHA-3 (FIPS PUB 202)
 ///
 /// This implementation is a port of [tiny_sha3][1].
+/// Also, manually "unrolled" a significant part of the loops in `sha3_keccakf`,
+/// exchanging readability and code size for performance.
 ///
 /// [1]: https://github.com/mjosaarinen/tiny_sha3
 use std::iter::zip;
@@ -57,7 +59,6 @@ pub(crate) fn sha3_digest(
 }
 
 fn sha3_keccakf(s: &mut KeccakfState) {
-    let mut t: u64;
     let mut bc = [0_u64; 5];
 
     #[cfg(target_endian = "big")]
@@ -68,32 +69,73 @@ fn sha3_keccakf(s: &mut KeccakfState) {
     #[allow(clippy::needless_range_loop)]
     for r in 0..KECCAKF_ROUNDS {
         // Theta
-        for i in 0..5 {
-            bc[i] = s[i] ^ s[i + 5] ^ s[i + 10] ^ s[i + 15] ^ s[i + 20];
-        }
-        for i in 0..5 {
-            t = bc[(i + 4) % 5] ^ bc[(i + 1) % 5].rotate_left(1);
-            for j in (0..25).step_by(5) {
-                s[j + i] ^= t;
-            }
-        }
+        //
+        // for i in 0..5 {
+        //     bc[i] = s[i] ^ s[i + 5] ^ s[i + 10] ^ s[i + 15] ^ s[i + 20];
+        // }
+        theta_step1_iteration!(bc, s, 0, 5, 10, 15, 20);
+        theta_step1_iteration!(bc, s, 1, 6, 11, 16, 21);
+        theta_step1_iteration!(bc, s, 2, 7, 12, 17, 22);
+        theta_step1_iteration!(bc, s, 3, 8, 13, 18, 23);
+        theta_step1_iteration!(bc, s, 4, 9, 14, 19, 24);
+
+        // for i in 0..5 {
+        //     t = bc[(i + 4) % 5] ^ bc[(i + 1) % 5].rotate_left(1);
+        //     for j in (0..25).step_by(5) {
+        //         s[j + i] ^= t;
+        //     }
+        // }
+        theta_step2_iteration!(bc, s, 0, 4, 1, 5, 10, 15, 20);
+        theta_step2_iteration!(bc, s, 1, 0, 2, 6, 11, 16, 21);
+        theta_step2_iteration!(bc, s, 2, 1, 3, 7, 12, 17, 22);
+        theta_step2_iteration!(bc, s, 3, 2, 4, 8, 13, 18, 23);
+        theta_step2_iteration!(bc, s, 4, 3, 0, 9, 14, 19, 24);
 
         // Rho Pi
-        t = s[1];
-        for i in 0..24 {
-            let j = KECCAKF_PILN[i];
-            bc[0] = s[j];
-            s[j] = t.rotate_left(KECCAKF_ROTC[i]);
-            t = bc[0];
-        }
+        // t = s[1];
+        // for i in 0..24 {
+        //     let j = KECCAKF_PILN[i];
+        //     bc[0] = s[j];
+        //     s[j] = t.rotate_left(KECCAKF_ROTC[i]);
+        //     t = bc[0];
+        // }
+        rho_pi_iteration!(bc, s, s[1], 0);
+        rho_pi_iteration!(bc, s, bc[0], 1);
+        rho_pi_iteration!(bc, s, bc[0], 2);
+        rho_pi_iteration!(bc, s, bc[0], 3);
+        rho_pi_iteration!(bc, s, bc[0], 4);
+        rho_pi_iteration!(bc, s, bc[0], 5);
+        rho_pi_iteration!(bc, s, bc[0], 6);
+        rho_pi_iteration!(bc, s, bc[0], 7);
+        rho_pi_iteration!(bc, s, bc[0], 8);
+        rho_pi_iteration!(bc, s, bc[0], 9);
+        rho_pi_iteration!(bc, s, bc[0], 10);
+        rho_pi_iteration!(bc, s, bc[0], 11);
+        rho_pi_iteration!(bc, s, bc[0], 12);
+        rho_pi_iteration!(bc, s, bc[0], 13);
+        rho_pi_iteration!(bc, s, bc[0], 14);
+        rho_pi_iteration!(bc, s, bc[0], 15);
+        rho_pi_iteration!(bc, s, bc[0], 16);
+        rho_pi_iteration!(bc, s, bc[0], 17);
+        rho_pi_iteration!(bc, s, bc[0], 18);
+        rho_pi_iteration!(bc, s, bc[0], 19);
+        rho_pi_iteration!(bc, s, bc[0], 20);
+        rho_pi_iteration!(bc, s, bc[0], 21);
+        rho_pi_iteration!(bc, s, bc[0], 22);
+        rho_pi_iteration!(bc, s, bc[0], 23);
 
         //  Chi
-        for j in (0..25).step_by(5) {
-            bc[..5].copy_from_slice(&s[j..(5 + j)]);
-            for i in 0..5 {
-                s[j + i] ^= (!bc[(i + 1) % 5]) & bc[(i + 2) % 5];
-            }
-        }
+        // for j in (0..25).step_by(5) {
+        //     bc[..5].copy_from_slice(&s[j..(5 + j)]);
+        //     for i in 0..5 {
+        //         s[j + i] ^= (!bc[(i + 1) % 5]) & bc[(i + 2) % 5];
+        //     }
+        // }
+        chi_iteration!(bc, s, 0);
+        chi_iteration!(bc, s, 5);
+        chi_iteration!(bc, s, 10);
+        chi_iteration!(bc, s, 15);
+        chi_iteration!(bc, s, 20);
 
         //  Iota
         s[0] ^= KECCAKF_RNDC[r];
@@ -107,7 +149,7 @@ fn sha3_keccakf(s: &mut KeccakfState) {
 
 pub(crate) type KeccakfState = [u64; 25];
 
-pub(crate) const KECCAKF_WIDTH_BYTE_SIZE: usize = 200; // `1600 / size_of::<u8>()`
+pub(crate) const KECCAKF_WIDTH_BYTE_SIZE: usize = 200; // `1600 / u8::BITS`
 pub(crate) const KECCAKF_ROUNDS: usize = 24;
 
 pub(crate) const KECCAK_DELIMITER_SUFFIX_KECCAK: u8 = 0x01;
@@ -130,6 +172,71 @@ static KECCAKF_ROTC: [u32; 24] = [
 static KECCAKF_PILN: [usize; 24] = [
     10, 7, 11, 17, 18, 3, 5, 16, 8, 21, 24, 4, 15, 23, 19, 13, 12, 2, 20, 14, 22, 9, 6, 1,
 ];
+
+// bc[i] = s[i] ^ s[i + 5] ^ s[i + 10] ^ s[i + 15] ^ s[i + 20]; // for i in [0, 5)
+macro_rules! theta_step1_iteration {
+    ($bc:ident, $s:ident, $i:literal, $i_5:literal, $i_10:literal, $i_15:literal, $i_20:literal) => {
+        $bc[$i] = $s[$i] ^ $s[$i_5] ^ $s[$i_10] ^ $s[$i_15] ^ $s[$i_20];
+    };
+}
+use theta_step1_iteration;
+
+// for i in [0, 5)
+// ```
+// t = bc[(i + 4) % 5] ^ bc[(i + 1) % 5].rotate_left(1);
+// for j in (0..25).step_by(5) {
+//     s[j + i] ^= t;
+// }
+// ```
+macro_rules! theta_step2_iteration {
+    ($bc:ident, $s:ident, $i:literal,
+    $i_4_rem_5:literal, $i_1_rem_5:literal,
+    $i_5:literal, $i_10:literal, $i_15:literal, $i_20:literal) => {
+        let t = $bc[$i_4_rem_5] ^ $bc[$i_1_rem_5].rotate_left(1);
+        $s[$i] ^= t;
+        $s[$i_5] ^= t;
+        $s[$i_10] ^= t;
+        $s[$i_15] ^= t;
+        $s[$i_20] ^= t;
+    };
+}
+use theta_step2_iteration;
+
+// for i in [0, 24)
+// ```
+// let j = KECCAKF_PILN[i];
+// bc[0] = s[j];
+// s[j] = t.rotate_left(KECCAKF_ROTC[i]);
+// ```
+macro_rules! rho_pi_iteration {
+    ($bc:ident, $s:ident, $t:expr, $i: literal) => {
+        let t = $t;
+        let j = KECCAKF_PILN[$i];
+        $bc[0] = $s[j];
+        $s[j] = t.rotate_left(KECCAKF_ROTC[$i]);
+    };
+}
+use rho_pi_iteration;
+
+// for j in [0, 5, 10, 15, 20]
+// ```
+// bc[..5].copy_from_slice(&s[j..(5 + j)]);
+// for i in 0..5 {
+//     s[j + i] ^= (!bc[(i + 1) % 5]) & bc[(i + 2) % 5];
+// }
+// ```
+macro_rules! chi_iteration {
+    ($bc:ident, $s:ident, $j:literal) => {
+        $bc[..5].copy_from_slice(&$s[$j..(5 + $j)]);
+
+        $s[$j] ^= (!$bc[1]) & $bc[2];
+        $s[$j + 1] ^= (!$bc[2]) & $bc[3];
+        $s[$j + 2] ^= (!$bc[3]) & $bc[4];
+        $s[$j + 3] ^= (!$bc[4]) & $bc[0];
+        $s[$j + 4] ^= (!$bc[0]) & $bc[1];
+    };
+}
+use chi_iteration;
 
 #[cfg(test)]
 mod tests {

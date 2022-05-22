@@ -12,6 +12,15 @@ use test::Bencher;
 const HASH_BYTE_LEN: usize = 1024 * 1024;
 
 #[bench]
+fn sha3_256_input_4096_bytes(bench: &mut Bencher) {
+    let bytes = hex_to_bytes(random_hex(4096 * 2)).unwrap();
+
+    bench.iter(|| {
+        Sha3_256::new().digest(&bytes);
+    })
+}
+
+#[bench]
 fn sha3_256(bench: &mut Bencher) {
     let bytes = hex_to_bytes(random_hex(HASH_BYTE_LEN * 2)).unwrap();
 
