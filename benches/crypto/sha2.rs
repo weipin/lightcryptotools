@@ -9,7 +9,7 @@ use lightcryptotools::crypto::codecs::hex_to_bytes;
 use lightcryptotools::crypto::hash::{Sha256, Sha384, Sha512, UnkeyedHash};
 use test::Bencher;
 
-const HASH_BYTE_LEN: usize = 1024 * 1024;
+const HASH_BYTE_LEN: usize = 4096;
 
 #[bench]
 fn sha256(bench: &mut Bencher) {

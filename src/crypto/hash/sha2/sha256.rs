@@ -7,6 +7,7 @@
 ///! Implements SHA-256
 ///
 /// https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
+use super::core::calculate_k;
 use super::core::rnd;
 use crate::crypto::hash::core::UnkeyedHash;
 use std::iter::zip;
@@ -48,144 +49,146 @@ fn sha256_digest(message: &[u8], s: &mut [u32; 8], w: &mut [u32; 64]) -> Vec<u8>
     s.copy_from_slice(&S_SHA256);
     w.fill(0);
 
-    let mut message = message.to_vec();
-    let l = u64::try_from(message.len()).unwrap() * 8; // Length of `message` in bits
-
-    // Message padding
-    // a. Appends bit 1, 1-byte aligned
-    message.push(0x80);
-
-    // b. appends `k` bit 0 where `k` is the smallest, non-negative solution to the equation
-    // (l + 1 + k) mod 512 = 448,
-    // (l + 1 + k + 64) mod 512 = 0
-    let k = {
-        let t = 1024 - (l % 512 + 1 + 64);
-        if t >= 512 {
-            t - 512
-        } else {
-            t
-        }
-    };
-    let zero_paddings = vec![0; (k - 7) as usize / 8];
-    message.extend_from_slice(&zero_paddings);
-
-    // c. Appends `l` in binary representation
-    message.extend_from_slice(&l.to_be_bytes());
-
-    // Each block of message is 512-bit, that is [u8;64]
-    debug_assert!(message.len() % Sha256::INPUT_BLOCK_BYTE_LENGTH == 0);
-    for block in message.chunks_exact(Sha256::INPUT_BLOCK_BYTE_LENGTH) {
-        // Loads the 64-byte message block into w[0..15] in big-endian order
-        for (u32_bytes, w_iter) in zip(
-            block.chunks_exact(std::mem::size_of::<u32>()),
-            w[..16].iter_mut(),
-        ) {
-            *w_iter = u32::from_be_bytes(u32_bytes.try_into().unwrap());
-        }
-
-        // Expands the message block
-        for i in 16..64 {
-            w[i] = gamma1(w[i - 2])
-                .wrapping_add(w[i - 7])
-                .wrapping_add(gamma0(w[i - 15]))
-                .wrapping_add(w[i - 16]);
-        }
-
-        // Performs the compression
-        let mut a = s[0];
-        let mut b = s[1];
-        let mut c = s[2];
-        let mut d = s[3];
-        let mut e = s[4];
-        let mut f = s[5];
-        let mut g = s[6];
-        let mut h = s[7];
-
-        // Exchanges readability and code size for slight performance improvement.
-        // It's done by executing the compression without all of the variable swaps,
-        // a trick learned from libtomcrypt[1]
-        //
-        // [1]: https://github.com/libtom/libtomcrypt/blob/7e7eb695d581782f04b24dc444cbfde86af59853/src/hashes/sha2/sha256.c#L107
-        rnd!(a, b, c, d, e, f, g, h, w, 0, 0x428a2f98);
-        rnd!(h, a, b, c, d, e, f, g, w, 1, 0x71374491);
-        rnd!(g, h, a, b, c, d, e, f, w, 2, 0xb5c0fbcf);
-        rnd!(f, g, h, a, b, c, d, e, w, 3, 0xe9b5dba5);
-        rnd!(e, f, g, h, a, b, c, d, w, 4, 0x3956c25b);
-        rnd!(d, e, f, g, h, a, b, c, w, 5, 0x59f111f1);
-        rnd!(c, d, e, f, g, h, a, b, w, 6, 0x923f82a4);
-        rnd!(b, c, d, e, f, g, h, a, w, 7, 0xab1c5ed5);
-        rnd!(a, b, c, d, e, f, g, h, w, 8, 0xd807aa98);
-        rnd!(h, a, b, c, d, e, f, g, w, 9, 0x12835b01);
-        rnd!(g, h, a, b, c, d, e, f, w, 10, 0x243185be);
-        rnd!(f, g, h, a, b, c, d, e, w, 11, 0x550c7dc3);
-        rnd!(e, f, g, h, a, b, c, d, w, 12, 0x72be5d74);
-        rnd!(d, e, f, g, h, a, b, c, w, 13, 0x80deb1fe);
-        rnd!(c, d, e, f, g, h, a, b, w, 14, 0x9bdc06a7);
-        rnd!(b, c, d, e, f, g, h, a, w, 15, 0xc19bf174);
-        rnd!(a, b, c, d, e, f, g, h, w, 16, 0xe49b69c1);
-        rnd!(h, a, b, c, d, e, f, g, w, 17, 0xefbe4786);
-        rnd!(g, h, a, b, c, d, e, f, w, 18, 0x0fc19dc6);
-        rnd!(f, g, h, a, b, c, d, e, w, 19, 0x240ca1cc);
-        rnd!(e, f, g, h, a, b, c, d, w, 20, 0x2de92c6f);
-        rnd!(d, e, f, g, h, a, b, c, w, 21, 0x4a7484aa);
-        rnd!(c, d, e, f, g, h, a, b, w, 22, 0x5cb0a9dc);
-        rnd!(b, c, d, e, f, g, h, a, w, 23, 0x76f988da);
-        rnd!(a, b, c, d, e, f, g, h, w, 24, 0x983e5152);
-        rnd!(h, a, b, c, d, e, f, g, w, 25, 0xa831c66d);
-        rnd!(g, h, a, b, c, d, e, f, w, 26, 0xb00327c8);
-        rnd!(f, g, h, a, b, c, d, e, w, 27, 0xbf597fc7);
-        rnd!(e, f, g, h, a, b, c, d, w, 28, 0xc6e00bf3);
-        rnd!(d, e, f, g, h, a, b, c, w, 29, 0xd5a79147);
-        rnd!(c, d, e, f, g, h, a, b, w, 30, 0x06ca6351);
-        rnd!(b, c, d, e, f, g, h, a, w, 31, 0x14292967);
-        rnd!(a, b, c, d, e, f, g, h, w, 32, 0x27b70a85);
-        rnd!(h, a, b, c, d, e, f, g, w, 33, 0x2e1b2138);
-        rnd!(g, h, a, b, c, d, e, f, w, 34, 0x4d2c6dfc);
-        rnd!(f, g, h, a, b, c, d, e, w, 35, 0x53380d13);
-        rnd!(e, f, g, h, a, b, c, d, w, 36, 0x650a7354);
-        rnd!(d, e, f, g, h, a, b, c, w, 37, 0x766a0abb);
-        rnd!(c, d, e, f, g, h, a, b, w, 38, 0x81c2c92e);
-        rnd!(b, c, d, e, f, g, h, a, w, 39, 0x92722c85);
-        rnd!(a, b, c, d, e, f, g, h, w, 40, 0xa2bfe8a1);
-        rnd!(h, a, b, c, d, e, f, g, w, 41, 0xa81a664b);
-        rnd!(g, h, a, b, c, d, e, f, w, 42, 0xc24b8b70);
-        rnd!(f, g, h, a, b, c, d, e, w, 43, 0xc76c51a3);
-        rnd!(e, f, g, h, a, b, c, d, w, 44, 0xd192e819);
-        rnd!(d, e, f, g, h, a, b, c, w, 45, 0xd6990624);
-        rnd!(c, d, e, f, g, h, a, b, w, 46, 0xf40e3585);
-        rnd!(b, c, d, e, f, g, h, a, w, 47, 0x106aa070);
-        rnd!(a, b, c, d, e, f, g, h, w, 48, 0x19a4c116);
-        rnd!(h, a, b, c, d, e, f, g, w, 49, 0x1e376c08);
-        rnd!(g, h, a, b, c, d, e, f, w, 50, 0x2748774c);
-        rnd!(f, g, h, a, b, c, d, e, w, 51, 0x34b0bcb5);
-        rnd!(e, f, g, h, a, b, c, d, w, 52, 0x391c0cb3);
-        rnd!(d, e, f, g, h, a, b, c, w, 53, 0x4ed8aa4a);
-        rnd!(c, d, e, f, g, h, a, b, w, 54, 0x5b9cca4f);
-        rnd!(b, c, d, e, f, g, h, a, w, 55, 0x682e6ff3);
-        rnd!(a, b, c, d, e, f, g, h, w, 56, 0x748f82ee);
-        rnd!(h, a, b, c, d, e, f, g, w, 57, 0x78a5636f);
-        rnd!(g, h, a, b, c, d, e, f, w, 58, 0x84c87814);
-        rnd!(f, g, h, a, b, c, d, e, w, 59, 0x8cc70208);
-        rnd!(e, f, g, h, a, b, c, d, w, 60, 0x90befffa);
-        rnd!(d, e, f, g, h, a, b, c, w, 61, 0xa4506ceb);
-        rnd!(c, d, e, f, g, h, a, b, w, 62, 0xbef9a3f7);
-        rnd!(b, c, d, e, f, g, h, a, w, 63, 0xc67178f2);
-
-        s[0] = a.wrapping_add(s[0]);
-        s[1] = b.wrapping_add(s[1]);
-        s[2] = c.wrapping_add(s[2]);
-        s[3] = d.wrapping_add(s[3]);
-        s[4] = e.wrapping_add(s[4]);
-        s[5] = f.wrapping_add(s[5]);
-        s[6] = g.wrapping_add(s[6]);
-        s[7] = h.wrapping_add(s[7]);
+    let mut chunks = message.chunks_exact(Sha256::INPUT_BLOCK_BYTE_LENGTH);
+    for block in chunks.by_ref() {
+        sha256_block_compression(block, s, w);
     }
 
+    let mut remaining = chunks.remainder().to_vec();
+    // Pads the message
+    // l: length of `message` in bits
+    let l = u64::try_from(message.len()).unwrap() * 8;
+    let k = calculate_k(l, Sha256::INPUT_BLOCK_BYTE_LENGTH as u64 * 8, 64);
+    // Appends bit 1, 1-byte aligned
+    remaining.push(0x80);
+    // Appends zero bytes
+    let zero_paddings = vec![0; (k - 7) as usize / 8];
+    remaining.extend(zero_paddings);
+    // Appends `l` in binary representation
+    remaining.extend_from_slice(&l.to_be_bytes());
+    debug_assert!(
+        remaining.len() == Sha256::INPUT_BLOCK_BYTE_LENGTH
+            || remaining.len() == Sha256::INPUT_BLOCK_BYTE_LENGTH * 2
+    );
+
+    for block in remaining.chunks_exact(Sha256::INPUT_BLOCK_BYTE_LENGTH) {
+        sha256_block_compression(block, s, w);
+    }
+
+    // output
     let mut digest = Vec::with_capacity(8 * std::mem::size_of::<u32>());
     for item in s {
         digest.extend_from_slice(&item.to_be_bytes());
     }
     digest
+}
+
+#[inline(always)]
+fn sha256_block_compression(block: &[u8], s: &mut [u32; 8], w: &mut [u32; 64]) {
+    // Loads the 64-byte message block into w[0..15] in big-endian order
+    for (u32_bytes, w_iter) in zip(
+        block.chunks_exact(std::mem::size_of::<u32>()),
+        w[..16].iter_mut(),
+    ) {
+        *w_iter = u32::from_be_bytes(u32_bytes.try_into().unwrap());
+    }
+
+    // Expands the message block
+    for i in 16..64 {
+        w[i] = gamma1(w[i - 2])
+            .wrapping_add(w[i - 7])
+            .wrapping_add(gamma0(w[i - 15]))
+            .wrapping_add(w[i - 16]);
+    }
+
+    // Performs the compression
+    let mut a = s[0];
+    let mut b = s[1];
+    let mut c = s[2];
+    let mut d = s[3];
+    let mut e = s[4];
+    let mut f = s[5];
+    let mut g = s[6];
+    let mut h = s[7];
+
+    // Exchanges readability and code size for slight performance improvement.
+    // It's done by executing the compression without all of the variable swaps,
+    // a trick learned from libtomcrypt[1]
+    //
+    // [1]: https://github.com/libtom/libtomcrypt/blob/7e7eb695d581782f04b24dc444cbfde86af59853/src/hashes/sha2/sha256.c#L107
+    rnd!(a, b, c, d, e, f, g, h, w, 0, 0x428a2f98);
+    rnd!(h, a, b, c, d, e, f, g, w, 1, 0x71374491);
+    rnd!(g, h, a, b, c, d, e, f, w, 2, 0xb5c0fbcf);
+    rnd!(f, g, h, a, b, c, d, e, w, 3, 0xe9b5dba5);
+    rnd!(e, f, g, h, a, b, c, d, w, 4, 0x3956c25b);
+    rnd!(d, e, f, g, h, a, b, c, w, 5, 0x59f111f1);
+    rnd!(c, d, e, f, g, h, a, b, w, 6, 0x923f82a4);
+    rnd!(b, c, d, e, f, g, h, a, w, 7, 0xab1c5ed5);
+    rnd!(a, b, c, d, e, f, g, h, w, 8, 0xd807aa98);
+    rnd!(h, a, b, c, d, e, f, g, w, 9, 0x12835b01);
+    rnd!(g, h, a, b, c, d, e, f, w, 10, 0x243185be);
+    rnd!(f, g, h, a, b, c, d, e, w, 11, 0x550c7dc3);
+    rnd!(e, f, g, h, a, b, c, d, w, 12, 0x72be5d74);
+    rnd!(d, e, f, g, h, a, b, c, w, 13, 0x80deb1fe);
+    rnd!(c, d, e, f, g, h, a, b, w, 14, 0x9bdc06a7);
+    rnd!(b, c, d, e, f, g, h, a, w, 15, 0xc19bf174);
+    rnd!(a, b, c, d, e, f, g, h, w, 16, 0xe49b69c1);
+    rnd!(h, a, b, c, d, e, f, g, w, 17, 0xefbe4786);
+    rnd!(g, h, a, b, c, d, e, f, w, 18, 0x0fc19dc6);
+    rnd!(f, g, h, a, b, c, d, e, w, 19, 0x240ca1cc);
+    rnd!(e, f, g, h, a, b, c, d, w, 20, 0x2de92c6f);
+    rnd!(d, e, f, g, h, a, b, c, w, 21, 0x4a7484aa);
+    rnd!(c, d, e, f, g, h, a, b, w, 22, 0x5cb0a9dc);
+    rnd!(b, c, d, e, f, g, h, a, w, 23, 0x76f988da);
+    rnd!(a, b, c, d, e, f, g, h, w, 24, 0x983e5152);
+    rnd!(h, a, b, c, d, e, f, g, w, 25, 0xa831c66d);
+    rnd!(g, h, a, b, c, d, e, f, w, 26, 0xb00327c8);
+    rnd!(f, g, h, a, b, c, d, e, w, 27, 0xbf597fc7);
+    rnd!(e, f, g, h, a, b, c, d, w, 28, 0xc6e00bf3);
+    rnd!(d, e, f, g, h, a, b, c, w, 29, 0xd5a79147);
+    rnd!(c, d, e, f, g, h, a, b, w, 30, 0x06ca6351);
+    rnd!(b, c, d, e, f, g, h, a, w, 31, 0x14292967);
+    rnd!(a, b, c, d, e, f, g, h, w, 32, 0x27b70a85);
+    rnd!(h, a, b, c, d, e, f, g, w, 33, 0x2e1b2138);
+    rnd!(g, h, a, b, c, d, e, f, w, 34, 0x4d2c6dfc);
+    rnd!(f, g, h, a, b, c, d, e, w, 35, 0x53380d13);
+    rnd!(e, f, g, h, a, b, c, d, w, 36, 0x650a7354);
+    rnd!(d, e, f, g, h, a, b, c, w, 37, 0x766a0abb);
+    rnd!(c, d, e, f, g, h, a, b, w, 38, 0x81c2c92e);
+    rnd!(b, c, d, e, f, g, h, a, w, 39, 0x92722c85);
+    rnd!(a, b, c, d, e, f, g, h, w, 40, 0xa2bfe8a1);
+    rnd!(h, a, b, c, d, e, f, g, w, 41, 0xa81a664b);
+    rnd!(g, h, a, b, c, d, e, f, w, 42, 0xc24b8b70);
+    rnd!(f, g, h, a, b, c, d, e, w, 43, 0xc76c51a3);
+    rnd!(e, f, g, h, a, b, c, d, w, 44, 0xd192e819);
+    rnd!(d, e, f, g, h, a, b, c, w, 45, 0xd6990624);
+    rnd!(c, d, e, f, g, h, a, b, w, 46, 0xf40e3585);
+    rnd!(b, c, d, e, f, g, h, a, w, 47, 0x106aa070);
+    rnd!(a, b, c, d, e, f, g, h, w, 48, 0x19a4c116);
+    rnd!(h, a, b, c, d, e, f, g, w, 49, 0x1e376c08);
+    rnd!(g, h, a, b, c, d, e, f, w, 50, 0x2748774c);
+    rnd!(f, g, h, a, b, c, d, e, w, 51, 0x34b0bcb5);
+    rnd!(e, f, g, h, a, b, c, d, w, 52, 0x391c0cb3);
+    rnd!(d, e, f, g, h, a, b, c, w, 53, 0x4ed8aa4a);
+    rnd!(c, d, e, f, g, h, a, b, w, 54, 0x5b9cca4f);
+    rnd!(b, c, d, e, f, g, h, a, w, 55, 0x682e6ff3);
+    rnd!(a, b, c, d, e, f, g, h, w, 56, 0x748f82ee);
+    rnd!(h, a, b, c, d, e, f, g, w, 57, 0x78a5636f);
+    rnd!(g, h, a, b, c, d, e, f, w, 58, 0x84c87814);
+    rnd!(f, g, h, a, b, c, d, e, w, 59, 0x8cc70208);
+    rnd!(e, f, g, h, a, b, c, d, w, 60, 0x90befffa);
+    rnd!(d, e, f, g, h, a, b, c, w, 61, 0xa4506ceb);
+    rnd!(c, d, e, f, g, h, a, b, w, 62, 0xbef9a3f7);
+    rnd!(b, c, d, e, f, g, h, a, w, 63, 0xc67178f2);
+
+    s[0] = a.wrapping_add(s[0]);
+    s[1] = b.wrapping_add(s[1]);
+    s[2] = c.wrapping_add(s[2]);
+    s[3] = d.wrapping_add(s[3]);
+    s[4] = e.wrapping_add(s[4]);
+    s[5] = f.wrapping_add(s[5]);
+    s[6] = g.wrapping_add(s[6]);
+    s[7] = h.wrapping_add(s[7]);
 }
 
 #[inline(always)]
