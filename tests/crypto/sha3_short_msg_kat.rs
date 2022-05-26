@@ -5,7 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use devtools::path::integration_testing_data_path;
-use lightcryptotools::crypto::codecs::{bytes_to_hex, hex_to_bytes};
+use lightcryptotools::crypto::codecs::{bytes_to_lower_hex, hex_to_bytes};
 use lightcryptotools::crypto::hash::{Sha3_224, Sha3_256, Sha3_384, Sha3_512, UnkeyedHash};
 use std::fs::File;
 use std::io;
@@ -58,7 +58,7 @@ fn test_sha3_short_msg_kat_core<T: UnkeyedHash>(data_filename: &str, hasher: &mu
                     .trim()
                     .to_lowercase();
                 let digest = hasher.digest(&hex_to_bytes(msg_hex).unwrap()[..byte_len]);
-                assert_eq!(bytes_to_hex(&digest), md_hex);
+                assert_eq!(bytes_to_lower_hex(&digest), md_hex);
                 count += 1;
             }
             None => {

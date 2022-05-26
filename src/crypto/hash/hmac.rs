@@ -70,7 +70,7 @@ pub fn hmac<T: AsRef<[u8]>, S: AsRef<[u8]>, H: UnkeyedHash>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::codecs::{bytes_to_hex, hex_to_bytes};
+    use crate::crypto::codecs::{bytes_to_lower_hex, hex_to_bytes};
     use crate::crypto::hash::{Sha256, Sha384, Sha512};
 
     #[test]
@@ -117,7 +117,7 @@ mod tests {
         for (key_hex, message, mac_hex) in data {
             let key = hex_to_bytes(key_hex).unwrap();
             let result = hmac(key, message, &mut hasher);
-            assert_eq!(bytes_to_hex(&result), mac_hex);
+            assert_eq!(bytes_to_lower_hex(&result), mac_hex);
         }
 
         // https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/HMAC_SHA384.pdf
@@ -184,7 +184,7 @@ mod tests {
         for (key_hex, message, mac_hex) in data {
             let key = hex_to_bytes(key_hex).unwrap();
             let result = hmac(key, message, &mut hasher);
-            assert_eq!(bytes_to_hex(&result), mac_hex);
+            assert_eq!(bytes_to_lower_hex(&result), mac_hex);
         }
 
         // https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/HMAC_SHA512.pdf
@@ -256,7 +256,7 @@ mod tests {
         for (key_hex, message, mac_hex) in data {
             let key = hex_to_bytes(key_hex).unwrap();
             let result = hmac(key, message, &mut hasher);
-            assert_eq!(bytes_to_hex(&result), mac_hex);
+            assert_eq!(bytes_to_lower_hex(&result), mac_hex);
         }
     }
 }

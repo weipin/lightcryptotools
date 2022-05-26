@@ -5,7 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use devtools::path::integration_testing_data_path;
-use lightcryptotools::crypto::codecs::{bytes_to_hex, hex_to_bytes};
+use lightcryptotools::crypto::codecs::{bytes_to_lower_hex, hex_to_bytes};
 use lightcryptotools::crypto::hash::{
     hmac, Sha256, Sha384, Sha3_224, Sha3_256, Sha3_384, Sha3_512, Sha512, UnkeyedHash,
 };
@@ -45,7 +45,7 @@ fn test_hmac_wycheproof_core<T: UnkeyedHash>(data_filename: &str, hasher: &mut T
                 hex_to_bytes(msg_hex).unwrap(),
                 hasher,
             );
-            if bytes_to_hex(&digest[..tag_bytes as usize]) == tag_hex {
+            if bytes_to_lower_hex(&digest[..tag_bytes as usize]) == tag_hex {
                 assert_eq!(result_str, "valid");
             } else {
                 assert_eq!(result_str, "invalid");

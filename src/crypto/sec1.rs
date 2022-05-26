@@ -5,6 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::bigint::bigint_core::BigInt;
+use crate::crypto::codecs::bytes_to_lower_hex;
 use crate::crypto::elliptic_curve_params::{EllipticCurveParams, EllipticCurveParamsEncoding};
 use crate::math::elliptic_curve::Point;
 use crate::math::modular::{modulo, sqrt};
@@ -159,9 +160,8 @@ impl EllipticCurveParamsEncoding for Sec1 {
                 format!("03{x_hex:0>hex_len$}")
             }
         } else {
-            let x_hex = point.x.to_hex();
-            let y_hex = point.y.to_hex();
-            format!("04{x_hex:0>hex_len$}{y_hex:0>hex_len$}")
+            let hex = bytes_to_lower_hex(&curve_params.point_to_bytes(point));
+            format!("04{hex}")
         }
     }
 }

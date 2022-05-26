@@ -84,6 +84,25 @@ impl EllipticCurveParams {
 
         true
     }
+
+    // Concatenates x and y in byte representation.
+    // Both x and y are leading zero padded to the length of base point order in bytes.
+    pub(crate) fn point_to_bytes(&self, point: &Point) -> Vec<u8> {
+        let element_byte_length = self.base_point_order.byte_len();
+        let mut data = Vec::with_capacity(element_byte_length * 2);
+
+        let bytes = point.x.to_be_bytes();
+        debug_assert!(bytes.len() <= element_byte_length);
+        data.extend(vec![0; element_byte_length - bytes.len()]);
+        data.extend_from_slice(&bytes);
+
+        let bytes = point.y.to_be_bytes();
+        debug_assert!(bytes.len() <= element_byte_length);
+        data.extend(vec![0; element_byte_length - bytes.len()]);
+        data.extend_from_slice(&bytes);
+
+        data
+    }
 }
 
 #[cfg(test)]

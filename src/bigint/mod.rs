@@ -28,3 +28,4 @@ mod sub;
 mod zero;
 
 pub use bigint_core::BigInt;
+pub(crate) use bigint_core::Sign;

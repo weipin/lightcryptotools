@@ -8,9 +8,9 @@
 //!
 //! # Examples
 //!
-//! cargo run --bin randombytes -- 16
+//! cargo run --bin randombytes -- 32
 
-use lightcryptotools::crypto::codecs::bytes_to_hex;
+use lightcryptotools::crypto::codecs::bytes_to_lower_hex;
 use lightcryptotools::random::generator::get_os_random_bytes;
 
 fn main() {
@@ -21,8 +21,8 @@ fn main() {
 
     match get_os_random_bytes(bytes_len) {
         Ok(bytes) => {
-            let hex = bytes_to_hex(&bytes);
-            println!("0x{hex}");
+            let hex = bytes_to_lower_hex(&bytes);
+            println!("{hex}");
         }
         Err(err) => {
             println!("Error: {err}");

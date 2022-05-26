@@ -6,6 +6,7 @@
 
 pub(crate) mod bigint;
 pub(crate) mod cpu_endian;
+pub(crate) mod ethereum;
 pub(crate) mod quickcheck;
 
 #[cfg(test)]

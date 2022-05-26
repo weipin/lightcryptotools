@@ -27,12 +27,12 @@ use std::fmt::Display;
 /// # Examples
 ///
 /// ```
-/// use lightcryptotools::crypto::codecs::bytes_to_hex;
+/// use lightcryptotools::crypto::codecs::bytes_to_lower_hex;
 ///
-/// let hex = bytes_to_hex(&[0x13, 0x7a, 0xcf]);
+/// let hex = bytes_to_lower_hex(&[0x13, 0x7a, 0xcf]);
 /// assert_eq!(hex, "137acf");
 /// ```
-pub fn bytes_to_hex(bytes: &[u8]) -> String {
+pub fn bytes_to_lower_hex(bytes: &[u8]) -> String {
     // 1 byte expands to 2 corresponding hexadecimal digits.
     let mut data = Vec::with_capacity(bytes.len() * 2);
 
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn empty_bytes_to_hex() {
-        assert_eq!(bytes_to_hex(&[]).is_empty(), true);
+        assert_eq!(bytes_to_lower_hex(&[]).is_empty(), true);
     }
 
     #[test]
@@ -204,7 +204,7 @@ mod tests {
         // converts the byte to hex and back again.
         let mut count = 0;
         for i in u8::MIN..=u8::MAX {
-            let hex = bytes_to_hex(&[i]);
+            let hex = bytes_to_lower_hex(&[i]);
             let byte = hex_to_bytes(&hex).unwrap()[0];
             assert_eq!(i, byte);
 
@@ -225,7 +225,7 @@ mod tests {
 
                 if i.is_ascii_hexdigit() && j.is_ascii_hexdigit() {
                     assert_eq!(
-                        bytes_to_hex(&hex_to_bytes(hex).unwrap()),
+                        bytes_to_lower_hex(&hex_to_bytes(hex).unwrap()),
                         hex.to_lowercase()
                     )
                 } else {
@@ -239,6 +239,6 @@ mod tests {
     #[quickcheck]
     fn hex_to_bytes_double_conversion(hex: HexString) -> bool {
         let bytes = hex_to_bytes(&hex.0).unwrap();
-        bytes_to_hex(&bytes) == hex.0.to_lowercase()
+        bytes_to_lower_hex(&bytes) == hex.0.to_lowercase()
     }
 }

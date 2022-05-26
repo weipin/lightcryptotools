@@ -241,7 +241,7 @@ use chi_iteration;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::codecs::{bytes_to_hex, hex_to_bytes};
+    use crate::crypto::codecs::{bytes_to_lower_hex, hex_to_bytes};
 
     #[test]
     fn test_basic() {
@@ -311,7 +311,7 @@ mod tests {
                 output_byte_size,
                 KECCAK_DELIMITER_SUFFIX_SHA3,
             );
-            assert_eq!(bytes_to_hex(&digest), sha3_digest_hex);
+            assert_eq!(bytes_to_lower_hex(&digest), sha3_digest_hex);
 
             let digest = sha3_digest(
                 &hex_to_bytes(message).unwrap(),
@@ -319,7 +319,7 @@ mod tests {
                 output_byte_size,
                 KECCAK_DELIMITER_SUFFIX_KECCAK,
             );
-            assert_eq!(bytes_to_hex(&digest), keccak_digest_hex);
+            assert_eq!(bytes_to_lower_hex(&digest), keccak_digest_hex);
         }
     }
 }

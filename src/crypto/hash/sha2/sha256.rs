@@ -235,7 +235,7 @@ static S_SHA256: [u32; 8] = [
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::codecs::bytes_to_hex;
+    use crate::crypto::codecs::bytes_to_lower_hex;
     use quickcheck::{Gen, QuickCheck};
     use rust_crypto_sha2::Digest;
 
@@ -260,7 +260,7 @@ mod tests {
         let mut sha256 = Sha256::new();
         for (message, digest_hex) in data {
             let digest = sha256.digest(message);
-            assert_eq!(bytes_to_hex(&digest), digest_hex);
+            assert_eq!(bytes_to_lower_hex(&digest), digest_hex);
         }
     }
 
@@ -277,7 +277,7 @@ mod tests {
             hasher.update(&bytes);
             let digest2 = hasher.finalize();
 
-            assert_eq!(bytes_to_hex(&digest), bytes_to_hex(&digest2))
+            assert_eq!(bytes_to_lower_hex(&digest), bytes_to_lower_hex(&digest2))
         }
     }
 
@@ -293,7 +293,7 @@ mod tests {
             hasher.update(&bytes);
             let digest2 = hasher.finalize();
 
-            bytes_to_hex(&digest) == bytes_to_hex(&digest2)
+            bytes_to_lower_hex(&digest) == bytes_to_lower_hex(&digest2)
         }
 
         QuickCheck::new()

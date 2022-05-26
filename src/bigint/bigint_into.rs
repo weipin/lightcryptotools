@@ -6,7 +6,7 @@
 
 use super::bigint_core::{BigInt, Sign};
 use super::bytes::be_digits_to_be_bytes;
-use crate::crypto::codecs::bytes_to_hex;
+use crate::crypto::codecs::bytes_to_lower_hex;
 
 impl BigInt {
     /// Returns the hexadecimal representation.
@@ -19,7 +19,7 @@ impl BigInt {
         }
 
         let bytes = self.to_be_bytes();
-        let mut hex = bytes_to_hex(&bytes);
+        let mut hex = bytes_to_lower_hex(&bytes);
 
         match self.sign {
             Sign::Positive => hex,

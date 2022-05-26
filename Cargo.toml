@@ -19,3 +19,6 @@ rust_crypto_sha2 = { package = "sha2", version = "0.10.2" }
 path = "bin/randombytes.rs"
 name = "randombytes"
 
+[[bin]]
+path = "bin/eoa_key_to_address.rs"
+name = "eoa_key_to_address"
