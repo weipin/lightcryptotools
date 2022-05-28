@@ -55,7 +55,7 @@ impl EllipticCurveParams {
         }
 
         // Checks that the point coordinates are lower than the field modulus.
-        if point.x > self.curve.p || point.y > self.curve.p {
+        if point.x >= self.curve.p || point.y >= self.curve.p {
             return false;
         }
 
@@ -92,12 +92,10 @@ impl EllipticCurveParams {
         let mut data = Vec::with_capacity(element_byte_length * 2);
 
         let bytes = point.x.to_be_bytes();
-        debug_assert!(bytes.len() <= element_byte_length);
         data.extend(vec![0; element_byte_length - bytes.len()]);
         data.extend_from_slice(&bytes);
 
         let bytes = point.y.to_be_bytes();
-        debug_assert!(bytes.len() <= element_byte_length);
         data.extend(vec![0; element_byte_length - bytes.len()]);
         data.extend_from_slice(&bytes);
 
@@ -148,6 +146,8 @@ mod tests {
             (1, -2, false),
             (21, 2, false), // greater than the field modulus
             (2, 21, false),
+            (17, 2, false),
+            (2, 17, false),
             (1, 2, false), // not valid curve point
             (0, 0, false), // is at infinity
             (10, 11, true),

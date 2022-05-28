@@ -16,7 +16,8 @@ use std::fmt;
 use std::fmt::Display;
 use std::iter::zip;
 
-pub type EoaPrivateKeyData = [u8; 32]; // 32: length of Secp256k1 base point order in bytes
+pub const EOA_PRIVATE_KEY_DATA_BYTE_LENGTH: usize = 32;
+pub type EoaPrivateKeyData = [u8; EOA_PRIVATE_KEY_DATA_BYTE_LENGTH];
 
 // Private key of an externally-owned account.
 pub struct EoaPrivateKey<'a>(pub PrivateKey<'a>);
@@ -52,7 +53,7 @@ impl EoaPublicAddress {
         bytes_to_lower_hex(&self.0)
     }
 
-    fn to_checksummed_hex(&self) -> String {
+    pub fn to_checksummed_hex(&self) -> String {
         let hex = self.to_hex();
         String::from_utf8(eip_55_checksum_encode(hex.as_bytes())).unwrap()
     }
@@ -73,7 +74,7 @@ impl Display for EoaPublicAddress {
 //
 // See EIP-55 for details:
 // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md
-// https://github.com/ethereum/EIPs/commit/54f9d55ee71b7099164c77422f30430a5ad4afa2
+// https://github.com/ethereum/eips/issues/55
 fn eip_55_checksum_encode(address_lower_hex: &[u8]) -> Vec<u8> {
     let hashed_address_lower_hex =
         bytes_to_lower_hex(&Keccak256::new().digest(address_lower_hex));
@@ -102,30 +103,6 @@ fn eip_55_checksum_encode(address_lower_hex: &[u8]) -> Vec<u8> {
 mod tests {
     use super::*;
     use crate::testing_tools::ethereum::private_key_hex_to_address;
-
-    #[test]
-    fn test_eip_55_checksum_encoding() {
-        let data = [
-            // All caps
-            "0x52908400098527886E0F7030069857D2E4169EE7",
-            "0x8617E340B3D01FA5F11F306F4090FD50E238070D",
-            // All Lower
-            "0xde709f2102306220921060314715629080e2fb77",
-            "0x27b1fdb04752bbc536007a920d24acb045561c26",
-            // Normal
-            "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
-            "0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359",
-            "0xdbF03B407c01E7cD3CBea99509d93f8DDDC8C6FB",
-            "0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb",
-        ];
-
-        for address in data {
-            let lower_address = address.to_lowercase();
-            let input = &lower_address.as_bytes()[2..];
-            let result = eip_55_checksum_encode(input);
-            assert_eq!(result, address.as_bytes()[2..]);
-        }
-    }
 
     #[test]
     fn test_private_key_to_address() {
@@ -158,5 +135,29 @@ mod tests {
         let key_hex = "ea54bdc52d163f88c93ab0615782cf718a2efb9e51a7989aab1b08067e9c1c5f";
         let address = "0x2F015C60E0be116B1f0CD534704Db9c92118FB6A";
         assert_eq!(private_key_hex_to_address(key_hex), address);
+    }
+
+    #[test]
+    fn test_eip_55_checksum_encoding() {
+        let data = [
+            // All caps
+            "0x52908400098527886E0F7030069857D2E4169EE7",
+            "0x8617E340B3D01FA5F11F306F4090FD50E238070D",
+            // All Lower
+            "0xde709f2102306220921060314715629080e2fb77",
+            "0x27b1fdb04752bbc536007a920d24acb045561c26",
+            // Normal
+            "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
+            "0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359",
+            "0xdbF03B407c01E7cD3CBea99509d93f8DDDC8C6FB",
+            "0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb",
+        ];
+
+        for address in data {
+            let lower_address = address.to_lowercase();
+            let input = &lower_address.as_bytes()[2..];
+            let result = eip_55_checksum_encode(input);
+            assert_eq!(result, address.as_bytes()[2..]);
+        }
     }
 }

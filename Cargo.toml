@@ -20,5 +20,9 @@ path = "bin/randombytes.rs"
 name = "randombytes"
 
 [[bin]]
-path = "bin/eoa_key_to_address.rs"
+path = "bin/ethereum/eoa_key_to_address.rs"
 name = "eoa_key_to_address"
+
+[[bin]]
+path = "bin/ethereum/eoa_gen_vanity_address.rs"
+name = "eoa_gen_vanity_address"
