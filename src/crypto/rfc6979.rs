@@ -67,11 +67,11 @@ impl Rfc6979 {
         debug_assert_eq!(self.q, private_key.curve_params.base_point_order);
 
         let mut key_and_msg = self.int2octets(&private_key.data);
-        key_and_msg.extend_from_slice(&self.bits2octets(hash));
+        key_and_msg.append(&mut self.bits2octets(hash));
         if self.employ_extra_random_data {
             match random::generator::get_os_random_bytes(32) {
-                Ok(bytes) => {
-                    key_and_msg.extend_from_slice(&bytes);
+                Ok(mut bytes) => {
+                    key_and_msg.append(&mut bytes);
                 }
                 Err(err) => {
                     return Err(GenerateNonceError::FailedToGenerateRandomBytes(err));
@@ -145,7 +145,7 @@ impl Rfc6979 {
         let mut bytes = n.to_be_bytes();
         if self.rlen / 8 > bytes.len() {
             let padding_len = self.rlen / 8 - bytes.len();
-            bytes.extend(vec![0; padding_len]);
+            bytes.append(&mut vec![0; padding_len]);
             bytes.rotate_right(padding_len);
         }
 

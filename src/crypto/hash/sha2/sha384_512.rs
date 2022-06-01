@@ -43,7 +43,7 @@ impl UnkeyedHash for Sha384 {
 
         let mut digest = Vec::with_capacity(std::mem::size_of::<u64>() * 6);
         for item in self.s.iter().take(6) {
-            digest.extend_from_slice(&item.to_be_bytes());
+            digest.extend(&item.to_be_bytes());
         }
         debug_assert_eq!(digest.len(), Self::OUTPUT_BYTE_LENGTH);
 
@@ -82,7 +82,7 @@ impl UnkeyedHash for Sha512 {
 
         let mut digest = Vec::with_capacity(std::mem::size_of::<u64>() * 8);
         for item in self.s {
-            digest.extend_from_slice(&item.to_be_bytes());
+            digest.extend(&item.to_be_bytes());
         }
         debug_assert_eq!(digest.len(), Self::OUTPUT_BYTE_LENGTH);
 
@@ -113,11 +113,10 @@ fn sha384_512_digest_core(
     // Appends bit 1, 1-byte aligned
     remaining.push(0x80);
     // Appends zero bytes
-    let zero_paddings = vec![0; (k - 7) as usize / 8];
-    remaining.extend(zero_paddings);
+    remaining.append(&mut vec![0; (k - 7) as usize / 8]);
     // Appends `l` in binary representation
-    remaining.extend_from_slice(&0_u64.to_be_bytes());
-    remaining.extend_from_slice(&l.to_be_bytes());
+    remaining.extend(&0_u64.to_be_bytes());
+    remaining.extend(&l.to_be_bytes());
     debug_assert!(
         remaining.len() == Sha512::INPUT_BLOCK_BYTE_LENGTH
             || remaining.len() == Sha512::INPUT_BLOCK_BYTE_LENGTH * 2

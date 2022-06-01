@@ -37,7 +37,7 @@ fn main() {
         panic!("Error: a prefix should only contain characters in [0-9a-fA-F]")
     }
 
-    let estimated_count = 32_usize.pow(u32::try_from(prefix.len()).unwrap());
+    let estimated_count = 32_usize.pow(prefix.len() as u32);
     let mut count = 0_usize;
     let start = Instant::now();
     let mut report_start = Instant::now();

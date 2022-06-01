@@ -8,7 +8,6 @@ use super::bigint_core::BigInt;
 use super::len::len_digits;
 use crate::bigint::bits::bit_len_digits;
 use crate::bigint::digit::Digit;
-use std::iter::repeat;
 use std::ops::{Shl, Shr};
 
 /// Returns the effective digits length of the shifted.
@@ -85,8 +84,7 @@ pub(crate) fn shift_left_digits(digits: &mut Vec<Digit>, digits_len: usize, n: u
     if shifting_digits_len > 0 {
         let available_slots_len = digits.len() - digits_len;
         if available_slots_len < shifting_digits_len {
-            let iter = repeat(0).take(shifting_digits_len - available_slots_len);
-            digits.extend(iter);
+            digits.append(&mut vec![0; shifting_digits_len - available_slots_len]);
         }
 
         digits_len += shifting_digits_len;

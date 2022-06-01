@@ -30,10 +30,10 @@ pub(crate) fn be_digits_to_be_bytes(digits: &[Digit]) -> Vec<u8> {
         // Strips the leading zero bytes at the most significant digit.
         let leading_zero_bytes_len = first.leading_zeros() / 8;
         let first_bytes = first.to_be_bytes();
-        bytes.extend_from_slice(&first_bytes[leading_zero_bytes_len as usize..]);
+        bytes.extend(&first_bytes[leading_zero_bytes_len as usize..]);
 
         for digit in elements {
-            bytes.extend_from_slice(&digit.to_be_bytes());
+            bytes.extend(&digit.to_be_bytes());
         }
         bytes
     } else {
@@ -52,7 +52,7 @@ pub(crate) fn be_bytes_to_be_digits(bytes: &[u8]) -> Vec<Digit> {
     let bytes: Cow<[u8]> = if extend_n > 0 {
         // Inserts padding for digit alignment.
         let mut bytes = bytes.to_vec();
-        bytes.extend(vec![0; extend_n]);
+        bytes.append(&mut vec![0; extend_n]);
         bytes.rotate_right(extend_n); // e.g., 123 => 0123
         bytes.into()
     } else {
