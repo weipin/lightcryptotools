@@ -5,4 +5,5 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 pub(crate) mod bytes;
+pub mod codable;
 pub(crate) mod slice;

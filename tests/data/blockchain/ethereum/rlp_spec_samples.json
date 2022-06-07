@@ -1,0 +1,50 @@
+[
+  {
+    "mode": "string",
+    "in": "dog",
+    "out": "83646f67"
+  },
+  {
+    "mode": "string",
+    "in": ["cat", "dog"],
+    "out": "c88363617483646f67"
+  },
+  {
+    "mode": "string",
+    "in": "",
+    "out": "80"
+  },
+  {
+    "in": [],
+    "out": "c0"
+  },
+  {
+    "mode": "int",
+    "in": 0,
+    "out": "80"
+  },
+  {
+    "mode": "string",
+    "in": "\u0000",
+    "out": "00"
+  },
+  {
+    "mode": "string",
+    "in": "\u000f",
+    "out": "0f"
+  },
+  {
+    "mode": "int",
+    "in": 1024,
+    "out": "820400"
+  },
+  {
+    "in": [ [], [[]], [ [], [[]] ] ],
+    "out": "c7c0c1c0c3c0c1c0"
+  },
+  {
+    "mode": "string",
+    "in": "Lorem ipsum dolor sit amet, consectetur adipisicing elit",
+    "out": "b8384c6f72656d20697073756d20646f6c6f722073697420616d65742c20636f6e7365637465747572206164697069736963696e6720656c6974"
+  }
+]

@@ -5,8 +5,12 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 //! Implements RLP (Recursive Length Prefix).
-//! https://eth.wiki/en/fundamentals/rlp
+//! https://ethereum.org/en/developers/docs/data-structures-and-encoding/rlp
 
 pub(crate) mod core;
+pub mod decoder;
 pub mod decoding;
+pub mod encoder;
 pub mod encoding;
+
+pub use self::core::RlpItemType;

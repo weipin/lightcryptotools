@@ -5,3 +5,4 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 mod eoa_private_key_to_address;
+mod rlp_ethers_testcases;
