@@ -210,11 +210,11 @@ mod tests {
         // Finds square roots of 2 mod p, where
         // p = 360027784083079948259017962255826129
         let a = BigInt::from(2);
-        let p = BigInt::from_str_radix("360027784083079948259017962255826129", 10);
+        let p = BigInt::from_str_radix("360027784083079948259017962255826129", 10).unwrap();
         let (root1, _) = sqrt(&a, &p).unwrap();
         assert_eq!(
             root1,
-            BigInt::from_str_radix("162244492740221711333411667492080568", 10)
+            BigInt::from_str_radix("162244492740221711333411667492080568", 10).unwrap()
         );
     }
 }

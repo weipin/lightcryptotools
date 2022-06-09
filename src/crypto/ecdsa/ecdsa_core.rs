@@ -279,8 +279,11 @@ mod tests {
             let secp256k1 = secp256k1();
 
             let hash_n = BigInt::from_hex(&h_hex.0).unwrap();
-            let private_key =
-                PrivateKey::new(BigInt::from_hex(&d_hex.0).unwrap(), secp256k1).unwrap();
+            let d = BigInt::from_hex(&d_hex.0).unwrap();
+            if d.is_zero() {
+                return true; // ignore zero -- invalid private key
+            }
+            let private_key = PrivateKey::new(d, secp256k1).unwrap();
             if private_key.data.is_zero() {
                 return true; // ignore
             }

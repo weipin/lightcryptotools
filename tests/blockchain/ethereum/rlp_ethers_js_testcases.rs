@@ -10,7 +10,7 @@
 //!
 //! Note:
 //! rlp-coder.json contains only types "string" and "array".
-//! All the "strings" are lower-case hex representing bytes, and it eliminates the
+//! All the "strings" are lowercase hex representing bytes, and it eliminates the
 //! type ambiguity of the "single value" decoding target.
 
 use devtools::path::integration_testing_data_path;

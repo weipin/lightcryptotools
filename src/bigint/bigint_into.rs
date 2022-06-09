@@ -9,11 +9,13 @@ use super::bytes::be_digits_to_be_bytes;
 use crate::crypto::codecs::bytes_to_lower_hex;
 
 impl BigInt {
-    /// Returns the hexadecimal representation.
+    /// Returns the lowercase hexadecimal representation.
     ///
     /// The representation is "1-byte aligned", matching the behavior of the method `from_hex`.
     /// For instance, the hexadecimal representation of value zero is "00".
-    pub fn to_hex(&self) -> String {
+    ///
+    /// If `self` is negative, the hexadecimal is prefixed by '-'.
+    pub fn to_lower_hex(&self) -> String {
         if self.is_zero() {
             return "00".to_string();
         }
@@ -56,7 +58,7 @@ mod tests {
         ];
 
         for (a, output) in data {
-            assert_eq!(a.to_hex(), output);
+            assert_eq!(a.to_lower_hex(), output);
         }
     }
 }

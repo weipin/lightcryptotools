@@ -69,7 +69,7 @@ impl Display for EoaPublicAddress {
 // Returns checksummed `address_lower_hex`.
 //
 // `address_lower_hex` is the hexadecimal of an EOA address and it
-// 1. must be lower-case
+// 1. must be lowercase
 // 2. must not be prefixed with "0x"
 //
 // See EIP-55 for details:

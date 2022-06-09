@@ -153,10 +153,10 @@ impl EllipticCurveParamsEncoding for Sec1 {
         let hex_len = curve_params.base_point_order.byte_len() * 2;
         if compressed {
             if point.y.is_even() {
-                let x_hex = point.x.to_hex();
+                let x_hex = point.x.to_lower_hex();
                 format!("02{x_hex:0>hex_len$}")
             } else {
-                let x_hex = point.x.to_hex();
+                let x_hex = point.x.to_lower_hex();
                 format!("03{x_hex:0>hex_len$}")
             }
         } else {

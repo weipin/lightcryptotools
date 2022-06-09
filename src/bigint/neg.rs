@@ -55,6 +55,6 @@ mod tests {
     #[test]
     fn test_neg() {
         let a = -BigInt::from(17);
-        assert_eq!(a.to_hex(), "-11");
+        assert_eq!(a.to_lower_hex(), "-11");
     }
 }

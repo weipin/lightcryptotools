@@ -4,7 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use devtools::hex::{byte_aligned_hex, decimal_to_hex};
 use devtools::path::integration_testing_data_path;
 use lightcryptotools::bigint::BigInt;
 use lightcryptotools::crypto::ecdsa::{PrivateKey, PublicKey};
@@ -52,7 +51,7 @@ fn test_private_key_adding() {
         let c = (private_key_a.data + b) % &secp256k1.base_point_order;
         match PrivateKey::new(c, secp256k1) {
             Some(private_key) => {
-                let hex = private_key.data.to_hex();
+                let hex = private_key.data.to_lower_hex();
                 assert_eq!(format!("{hex:0>64}"), expected.unwrap());
             }
             None => {
@@ -77,7 +76,7 @@ fn test_private_key_negating() {
 
         let a = BigInt::from_hex(a_hex).unwrap();
         let b = &secp256k1.base_point_order - a;
-        let hex = b.to_hex();
+        let hex = b.to_lower_hex();
         assert_eq!(format!("{hex:0>64}"), expected);
     }
 }
@@ -92,11 +91,9 @@ fn test_get_public_key_from_private_key() {
         let line = line.unwrap();
         let mut iter = line.split(':');
         let private_key_decimal = iter.next().unwrap();
-        let private_key_hex = decimal_to_hex(private_key_decimal);
         let public_key_x_hex = iter.next().unwrap();
 
-        let private_key_n =
-            BigInt::from_hex(byte_aligned_hex(&private_key_hex).as_ref()).unwrap();
+        let private_key_n = BigInt::from_str_radix(private_key_decimal, 10).unwrap();
         let public_key_x = BigInt::from_hex(public_key_x_hex).unwrap();
 
         let private_key = PrivateKey::new(private_key_n, secp256k1).unwrap();

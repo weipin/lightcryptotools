@@ -4,7 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use devtools::hex::{byte_aligned_hex, decimal_to_hex};
 use devtools::path::integration_testing_data_path;
 use lightcryptotools::bigint::BigInt;
 use lightcryptotools::crypto::codecs::hex_to_bytes;
@@ -54,20 +53,23 @@ fn test_verify_non_strict_msg_bb5a() {
     let secp256k1 = secp256k1();
 
     let hash_hex = "bb5a52f42f9c9261ed4361f59422a1e30036e7c32b270c8807a419feca605023";
-    let x_hex = decimal_to_hex(
-        "3252872872578928810725465493269682203671229454553002637820453004368632726370",
-    );
-    let y_hex = decimal_to_hex(
-        "17482644437196207387910659778872952193236850502325156318830589868678978890912",
-    );
+    let x_decimal =
+        "3252872872578928810725465493269682203671229454553002637820453004368632726370";
+    let y_decimal =
+        "17482644437196207387910659778872952193236850502325156318830589868678978890912";
+    let x_hex = BigInt::from_str_radix(x_decimal, 10)
+        .unwrap()
+        .to_lower_hex();
+    let y_hex = BigInt::from_str_radix(y_decimal, 10)
+        .unwrap()
+        .to_lower_hex();
     let point_hex = format!("04{x_hex:0>64}{y_hex:0>64}");
-    let r_hex = decimal_to_hex("432420386565659656852420866390673177323");
-    let s_hex = decimal_to_hex(
-        "115792089237316195423570985008687907852837564279074904382605163141518161494334",
-    );
+    let r_decimal = "432420386565659656852420866390673177323";
+    let s_decimal =
+        "115792089237316195423570985008687907852837564279074904382605163141518161494334";
 
-    let r = BigInt::from_hex(byte_aligned_hex(&r_hex).as_ref()).unwrap();
-    let s = BigInt::from_hex(s_hex).unwrap();
+    let r = BigInt::from_str_radix(r_decimal, 10).unwrap();
+    let s = BigInt::from_str_radix(s_decimal, 10).unwrap();
     let public_key = PublicKey::from_sec1_hex(point_hex, secp256k1).unwrap();
     let signature = Signature::new(r, s, secp256k1).unwrap();
 
@@ -97,7 +99,7 @@ fn test_sign_hash_greater_than_base_point_order() {
     let data = [
         // order - 2
         (
-            (&secp256k1.base_point_order - BigInt::from(2)).to_hex(),
+            (&secp256k1.base_point_order - BigInt::from(2)).to_lower_hex(),
             concat!(
                 "fbe907aac2bd7cd0ce3711f644235486367bdca4b87f19f76a7935fa00c6d169",
                 "7f16095dd8cb6a4da57da25e3a3178665513e12c7b4dc52f2c212d250eef6407"
@@ -105,7 +107,7 @@ fn test_sign_hash_greater_than_base_point_order() {
         ),
         // order - 1
         (
-            (&secp256k1.base_point_order - BigInt::one()).to_hex(),
+            (&secp256k1.base_point_order - BigInt::one()).to_lower_hex(),
             concat!(
                 "0315f68838865553c4bd6fab5d27c7ebc72b94f1e2939a4f34d6954f998ef2d3",
                 "2464db52707d432135c48d6f37d18ee645d7a893a5505350e57b04300098ebe9"
@@ -113,7 +115,7 @@ fn test_sign_hash_greater_than_base_point_order() {
         ),
         // order
         (
-            secp256k1.base_point_order.to_hex(),
+            secp256k1.base_point_order.to_lower_hex(),
             concat!(
                 "a0b37f8fba683cc68f6574cd43b39f0343a50008bf6ccea9d13231d9e7e2e1e4",
                 "ee12372cf8dabd69d9b51403c23893260446a5aca818c9f55a1d5e8be63972ef"
@@ -121,7 +123,7 @@ fn test_sign_hash_greater_than_base_point_order() {
         ),
         // order + 1
         (
-            (&secp256k1.base_point_order + BigInt::one()).to_hex(),
+            (&secp256k1.base_point_order + BigInt::one()).to_lower_hex(),
             concat!(
                 "6673ffad2147741f04772b6f921f0ba6af0c1e77fc439e65c36dedf4092e8898",
                 "b3e568e9ad1f52577fedf107fda18f5ebb8e5c220badf23532bf6fbcc67fb4b8"
@@ -129,7 +131,7 @@ fn test_sign_hash_greater_than_base_point_order() {
         ),
         // order + 2
         (
-            (&secp256k1.base_point_order + BigInt::from(2)).to_hex(),
+            (&secp256k1.base_point_order + BigInt::from(2)).to_lower_hex(),
             concat!(
                 "56166f3a4b7d34af3bcc6c8a92a8f3c40309db9f22d7c83f8c5b87b374fd8047",
                 "348ebb966e4e4c5ab15c43277b857c2844e45958f79b1e511163ca560b2ab246"
@@ -161,10 +163,10 @@ fn test_match_secp256k1_fix_1063() {
 
     let secp256k1 = secp256k1();
     let hash_hex = "ffffffffffffffffffffffffffffffff20202020202020202020202020202020";
-    let d_hex = decimal_to_hex(
-        "22222222222222222222222222222222222222222222222222222222222222222222222222222",
-    );
-    let private_key = PrivateKey::new(BigInt::from_hex(d_hex).unwrap(), secp256k1).unwrap();
+    let d_decimal =
+        "22222222222222222222222222222222222222222222222222222222222222222222222222222";
+    let private_key =
+        PrivateKey::new(BigInt::from_str_radix(d_decimal, 10).unwrap(), secp256k1).unwrap();
     let signature = sign_with_options(
         &hex_to_bytes(&hash_hex).unwrap(),
         &private_key,

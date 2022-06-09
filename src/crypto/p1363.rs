@@ -73,8 +73,8 @@ impl SignatureEncoding for P1363 {
     /// the hexadecimal representation is leading zero padded.
     fn encode(signature: &Signature) -> String {
         let element_hex_len = signature.curve_params.base_point_order.byte_len() * 2;
-        let r_hex = signature.r.to_hex();
-        let s_hex = signature.s.to_hex();
+        let r_hex = signature.r.to_lower_hex();
+        let s_hex = signature.s.to_lower_hex();
 
         format!("{r_hex:0>element_hex_len$}{s_hex:0>element_hex_len$}")
     }

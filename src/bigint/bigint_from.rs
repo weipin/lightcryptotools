@@ -46,7 +46,7 @@ macro_rules! test_from_int {
         #[quickcheck]
         fn $fn_name(n: $T) -> bool {
             let a = BigInt::from(n);
-            n == <$T>::from_str_radix(&a.to_hex(), 16).unwrap()
+            n == <$T>::from_str_radix(&a.to_lower_hex(), 16).unwrap()
         }
     };
 }
@@ -54,54 +54,7 @@ macro_rules! test_from_int {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::codecs::CodecsError;
-    use crate::testing_tools::quickcheck::BigIntHexString;
     use ::quickcheck_macros::quickcheck;
-
-    #[test]
-    fn test_from_hex() {
-        let data = [
-            ("", "00"),
-            ("00", "00"),
-            ("79be66", "79be66"),
-            (
-                "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-                "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-            ),
-            ("-00", "00"),
-            ("-79be66", "-79be66"),
-            (
-                "-79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-                "-79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
-            ),
-        ];
-        for (a_hex, output) in data {
-            let a = BigInt::from_hex(a_hex).unwrap();
-
-            assert_eq!(a.to_hex(), output);
-        }
-    }
-
-    #[quickcheck]
-    fn from_hex_and_to_hex_double_conversion(hex: BigIntHexString) -> bool {
-        let n1 = BigInt::from_hex(hex.0).unwrap();
-        let hex = n1.to_hex();
-        let n2 = BigInt::from_hex(hex).unwrap();
-        n1 == n2
-    }
-
-    #[test]
-    fn test_from_hex_with_errors() {
-        let data = [
-            ("0", CodecsError::NotByteAligned),
-            ("79be661", CodecsError::NotByteAligned),
-            ("-0", CodecsError::NotByteAligned),
-            ("-0x79be66", CodecsError::InvalidCharFound),
-        ];
-        for (a_hex, err) in data {
-            assert_eq!(BigInt::from_hex(a_hex).unwrap_err(), err);
-        }
-    }
 
     test_from_int!(u128, test_from_u128);
     test_from_int!(u64, test_from_u64);

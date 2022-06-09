@@ -10,7 +10,7 @@ use std::fmt::Display;
 
 impl Display for BigInt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let hex = self.to_hex();
+        let hex = self.to_lower_hex();
         write!(f, "0x{hex}")
     }
 }
