@@ -31,7 +31,7 @@ fn test_ecdsa_secp256k1_signing_cases() {
 
     for (hash_hex, d_hex, signature_hex) in data {
         let private_key = PrivateKey::new(BigInt::from_hex(d_hex).unwrap(), secp256k1).unwrap();
-        let signature = sign_with_options(
+        let (signature, _) = sign_with_options(
             &hex_to_bytes(hash_hex).unwrap(),
             &private_key,
             &SigningOptions {
@@ -140,7 +140,7 @@ fn test_sign_hash_greater_than_base_point_order() {
     ];
     let private_key = PrivateKey::new(BigInt::one(), secp256k1).unwrap();
     for (hash_hex, signature_hex) in data {
-        let signature = sign_with_options(
+        let (signature, _) = sign_with_options(
             &hex_to_bytes(&hash_hex).unwrap(),
             &private_key,
             &SigningOptions {
@@ -167,7 +167,7 @@ fn test_match_secp256k1_fix_1063() {
         "22222222222222222222222222222222222222222222222222222222222222222222222222222";
     let private_key =
         PrivateKey::new(BigInt::from_str_radix(d_decimal, 10).unwrap(), secp256k1).unwrap();
-    let signature = sign_with_options(
+    let (signature, _) = sign_with_options(
         &hex_to_bytes(&hash_hex).unwrap(),
         &private_key,
         &SigningOptions {
@@ -214,7 +214,7 @@ fn test_sign_hash_bytes_padding() {
     ];
 
     for hash in hash_vec {
-        let signature = sign_with_options(
+        let (signature, _) = sign_with_options(
             hash,
             &private_key,
             &SigningOptions {
@@ -246,11 +246,12 @@ fn test_valid_signing() {
         let signature_hex = value["signature"].as_str().unwrap();
 
         let private_key = PrivateKey::new(BigInt::from_hex(d_hex).unwrap(), secp256k1).unwrap();
-        let signature = sign_with_options(
+        let (signature, _) = sign_with_options(
             &hex_to_bytes(m_hex).unwrap(),
             &private_key,
             &SigningOptions {
                 employ_extra_random_data: false,
+                is_zero_hash_allowed: true,
                 ..Default::default()
             },
         )

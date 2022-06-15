@@ -302,3 +302,38 @@ pub(crate) fn secp521r1() -> EllipticCurveParams {
         cofactor: 1,
     }
 }
+
+pub(crate) fn w25519() -> EllipticCurveParams {
+    EllipticCurveParams {
+        curve: Curve {
+            a: BigInt::from_hex(
+                "2AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA984914A144",
+            )
+            .unwrap(),
+            b: BigInt::from_hex(
+                "7b425ed097b425ed097b425ed097b425ed097b425ed097b4260b5e9c7710c864",
+            )
+            .unwrap(),
+            p: BigInt::from_hex(
+                "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
+            )
+            .unwrap(),
+        },
+        base_point: Point {
+            x: BigInt::from_hex(
+                "2AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD245A",
+            )
+            .unwrap(),
+            y: BigInt::from_hex(
+                "5F51E65E475F794B1FE122D388B72EB36DC2B28192839E4DD6163A5D81312C14",
+            )
+            .unwrap(),
+        },
+
+        base_point_order: BigInt::from_hex(
+            "1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED",
+        )
+        .unwrap(),
+        cofactor: 8,
+    }
+}

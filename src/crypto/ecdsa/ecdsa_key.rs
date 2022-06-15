@@ -57,3 +57,49 @@ impl<'a> PublicKey<'a> {
         self.curve_params.validate_point(&self.data)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_keys_partial_eq() {
+        let curve1 = EllipticCurveParams {
+            base_point_order: BigInt::from(10),
+            ..Default::default()
+        };
+        let curve2 = EllipticCurveParams {
+            base_point_order: BigInt::from(10),
+            ..Default::default()
+        };
+        let curve3 = EllipticCurveParams {
+            base_point_order: BigInt::from(17),
+            ..Default::default()
+        };
+
+        let point = Point {
+            x: BigInt::from(11),
+            y: BigInt::from(17),
+        };
+        assert_eq!(
+            PublicKey {
+                data: point.clone(),
+                curve_params: &curve1
+            },
+            PublicKey {
+                data: point.clone(),
+                curve_params: &curve2
+            }
+        );
+        assert_ne!(
+            PublicKey {
+                data: point.clone(),
+                curve_params: &curve1
+            },
+            PublicKey {
+                data: point.clone(),
+                curve_params: &curve3
+            }
+        );
+    }
+}

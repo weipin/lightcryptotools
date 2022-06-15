@@ -4,45 +4,24 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use super::ecdsa_core::{
+    hash_length_matches_base_point_order, Signature, SignatureRecoveryId,
+    EMPTY_HASH_NOT_ALLOWED_ERROR_DISPLAY,
+    HASH_BIT_LENGTH_DOES_NOT_MATCH_BASE_POINT_ORDER_ERROR_DISPLAY,
+    ZERO_HASH_NOT_ALLOWED_ERROR_DISPLAY,
+};
+use super::ecdsa_key::PrivateKey;
 use crate::bigint::bigint_core::Sign;
 use crate::bigint::BigInt;
-use crate::crypto::ecdsa::ecdsa_core::Signature;
-use crate::crypto::ecdsa::ecdsa_key::PrivateKey;
 use crate::crypto::hash::{Sha256, UnkeyedHash};
 use crate::crypto::rfc6979::{GenerateNonceError, Rfc6979};
 use std::fmt;
 use std::fmt::Display;
 
-#[derive(Clone, Debug, PartialEq)]
-#[non_exhaustive]
-pub enum SigningError {
-    EmptyHash,
-    HashBitLengthDoesNotMatchBasePointOrder,
-    FailedToGenerateNonce(GenerateNonceError),
-}
-
-impl Display for SigningError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SigningError::EmptyHash => {
-                write!(f, "Empty hash is not allowed")
-            }
-            SigningError::HashBitLengthDoesNotMatchBasePointOrder => {
-                write!(f, "Hash bit length doesn't equal to the bit length of the order of the base point")
-            }
-            SigningError::FailedToGenerateNonce(err) => {
-                write!(f, "Failed to generate deterministic nonce: {err}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for SigningError {}
-
 pub fn sign<'a>(
     hash: &[u8],
     private_key: &'a PrivateKey,
-) -> Result<Signature<'a>, SigningError> {
+) -> Result<(Signature<'a>, SignatureRecoveryId), SigningError> {
     sign_with_options(hash, private_key, &SigningOptions::default())
 }
 
@@ -50,7 +29,7 @@ pub fn sign_with_options<'a>(
     hash: &[u8],
     private_key: &'a PrivateKey,
     options: &SigningOptions,
-) -> Result<Signature<'a>, SigningError> {
+) -> Result<(Signature<'a>, SignatureRecoveryId), SigningError> {
     sign_with_options_and_rfc6979_hmac_hasher(hash, private_key, options, &mut Sha256::new())
 }
 
@@ -59,21 +38,15 @@ pub fn sign_with_options_and_rfc6979_hmac_hasher<'a, H: UnkeyedHash>(
     private_key: &'a PrivateKey,
     options: &SigningOptions,
     hmac_hasher: &mut H,
-) -> Result<Signature<'a>, SigningError> {
+) -> Result<(Signature<'a>, SignatureRecoveryId), SigningError> {
     if hash.is_empty() {
-        return Err(SigningError::EmptyHash);
+        return Err(SigningError::EmptyHashNotAllowed);
     }
 
-    if options.strict_hash_byte_length {
-        debug_assert_eq!(
-            private_key.curve_params.base_point_order.bit_len() % 8,
-            0,
-            "The bit length of the order of the base point is not 1-byte aligned."
-        );
-
-        if hash.len() * 8 != private_key.curve_params.base_point_order.bit_len() {
-            return Err(SigningError::HashBitLengthDoesNotMatchBasePointOrder);
-        }
+    if options.strict_hash_byte_length
+        && !hash_length_matches_base_point_order(hash.len(), private_key.curve_params)
+    {
+        return Err(SigningError::HashBitLengthDoesNotMatchBasePointOrder);
     }
 
     // SEC1: truncates the hash to the bit length of the order of the base point.
@@ -82,6 +55,10 @@ pub fn sign_with_options_and_rfc6979_hmac_hasher<'a, H: UnkeyedHash>(
         private_key.curve_params.base_point_order.bit_len(),
         Sign::Positive,
     );
+
+    if !options.is_zero_hash_allowed && hash_n.is_zero() {
+        return Err(SigningError::ZeroHashNotAllowed);
+    }
 
     let rfc6979 = Rfc6979::new(
         private_key.curve_params.base_point_order.clone(),
@@ -96,13 +73,35 @@ pub fn sign_with_options_and_rfc6979_hmac_hasher<'a, H: UnkeyedHash>(
                 return Err(SigningError::FailedToGenerateNonce(err));
             }
         };
-        if let Some(signature) = private_key.sign(&hash_n, &k) {
-            return if options.enforce_low_s {
-                Ok(signature.to_low_s_signature())
-            } else {
-                Ok(signature)
-            };
+
+        let (signature, recovery_id) = match private_key.sign(&hash_n, &k) {
+            None => {
+                continue;
+            }
+            Some((signature, recovery_id)) => (signature, recovery_id),
+        };
+
+        if options.enforce_low_s && !signature.is_low_s_signature() {
+            // Ensures `s` is at most the order of the base point divided by 2,
+            // (essentially restricting this value to its lower half range).
+            //
+            // For "low s" details, see [BIP: 146][1]
+            // [1]: https://github.com/bitcoin/bips/blob/master/bip-0146.mediawiki
+            let signature = Signature::new(
+                signature.r.clone(),
+                &signature.curve_params.base_point_order - &signature.s,
+                signature.curve_params,
+            )
+            .unwrap();
+            // Must also flip the least significant bit of `recovery_id` (odd/even)
+            let recovery_id_n = (recovery_id as u8) ^ 1;
+            return Ok((
+                signature,
+                SignatureRecoveryId::from_u8(recovery_id_n).unwrap(),
+            ));
         }
+
+        return Ok((signature, recovery_id));
     }
 }
 
@@ -110,6 +109,7 @@ pub struct SigningOptions {
     pub enforce_low_s: bool,
     pub strict_hash_byte_length: bool,
     pub employ_extra_random_data: bool,
+    pub is_zero_hash_allowed: bool, // mostly for dev and testing
 }
 
 impl Default for SigningOptions {
@@ -118,9 +118,43 @@ impl Default for SigningOptions {
             enforce_low_s: true,
             strict_hash_byte_length: true,
             employ_extra_random_data: true,
+            is_zero_hash_allowed: false,
         }
     }
 }
+#[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub enum SigningError {
+    EmptyHashNotAllowed,
+    ZeroHashNotAllowed,
+    HashBitLengthDoesNotMatchBasePointOrder,
+    FailedToGenerateNonce(GenerateNonceError),
+}
+
+impl Display for SigningError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SigningError::EmptyHashNotAllowed => {
+                write!(f, "{}", EMPTY_HASH_NOT_ALLOWED_ERROR_DISPLAY)
+            }
+            SigningError::ZeroHashNotAllowed => {
+                write!(f, "{}", ZERO_HASH_NOT_ALLOWED_ERROR_DISPLAY)
+            }
+            SigningError::HashBitLengthDoesNotMatchBasePointOrder => {
+                write!(
+                    f,
+                    "{}",
+                    HASH_BIT_LENGTH_DOES_NOT_MATCH_BASE_POINT_ORDER_ERROR_DISPLAY
+                )
+            }
+            SigningError::FailedToGenerateNonce(err) => {
+                write!(f, "Failed to generate deterministic nonce: {err}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for SigningError {}
 
 #[cfg(test)]
 mod tests {
@@ -136,7 +170,7 @@ mod tests {
     use std::iter::zip;
 
     #[test]
-    fn test_sign_err_cases() {
+    fn test_signing_err_cases() {
         let curve = EllipticCurveParams {
             base_point_order: BigInt::from_hex(
                 "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
@@ -151,12 +185,27 @@ mod tests {
                 &[],
                 &private_key,
                 &SigningOptions {
+                    strict_hash_byte_length: false,
                     employ_extra_random_data: false,
                     ..Default::default()
                 }
             )
             .unwrap_err(),
-            SigningError::EmptyHash
+            SigningError::EmptyHashNotAllowed
+        );
+
+        assert_eq!(
+            sign_with_options(
+                &[0],
+                &private_key,
+                &SigningOptions {
+                    strict_hash_byte_length: false,
+                    employ_extra_random_data: false,
+                    ..Default::default()
+                }
+            )
+            .unwrap_err(),
+            SigningError::ZeroHashNotAllowed
         );
 
         assert_eq!(
@@ -224,7 +273,7 @@ mod tests {
                 PrivateKey::new(BigInt::from_hex(d_hex).unwrap(), secp256k1).unwrap();
 
             // without extra data
-            let signature = sign_with_options(
+            let (signature, _) = sign_with_options(
                 &hex_to_bytes(m_hex).unwrap(),
                 &private_key,
                 &SigningOptions {
@@ -244,7 +293,7 @@ mod tests {
                     let ctx = generator::get_os_random_bytes_context();
                     ctx.expect().return_once(|_| Ok(extra_data));
 
-                    let signature = sign_with_options(
+                    let (signature, _) = sign_with_options(
                         &hex_to_bytes(m_hex).unwrap(),
                         &private_key,
                         &SigningOptions {

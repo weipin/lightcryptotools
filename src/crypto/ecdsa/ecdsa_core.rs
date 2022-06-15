@@ -4,9 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use super::ecdsa_key::{PrivateKey, PublicKey};
 use crate::bigint::bigint_core::Sign;
 use crate::bigint::BigInt;
-use crate::crypto::ecdsa::ecdsa_key::{PrivateKey, PublicKey};
 use crate::crypto::elliptic_curve_params::EllipticCurveParams;
 use crate::math::modular::{invert, modulo};
 
@@ -41,32 +41,21 @@ impl<'a> Signature<'a> {
     pub(crate) fn is_low_s_signature(&self) -> bool {
         self.s <= (&self.curve_params.base_point_order >> 1)
     }
-
-    /// Returns a signature and ensures its `s` is at most the order of the base point divided by 2,
-    /// (essentially restricting this value to its lower half range).
-    ///
-    /// For "low s" details see [BIP: 146][1]
-    /// [1]: https://github.com/bitcoin/bips/blob/master/bip-0146.mediawiki
-    pub(crate) fn to_low_s_signature(&self) -> Signature<'a> {
-        if !self.is_low_s_signature() {
-            return Signature::new(
-                self.r.clone(),
-                &self.curve_params.base_point_order - &self.s,
-                self.curve_params,
-            )
-            .unwrap();
-        }
-
-        self.clone()
-    }
 }
 
 impl PrivateKey<'_> {
-    /// Generates a ECDSA signature of `hash` with `private_key`.
-    /// `k` is a random number between 1 and n – 1.
+    /// Generates a ECDSA signature and the recovery id of `hash` with the private key `self`.
+    ///
+    /// # Parameters
+    ///
+    /// * `k`: a random number between 1 and n – 1.
     ///
     /// Returns None if either element of the signature (`r` or `s`) is zero.
-    pub(crate) fn sign(&self, hash: &BigInt, k: &BigInt) -> Option<Signature> {
+    pub(crate) fn sign(
+        &self,
+        hash: &BigInt,
+        k: &BigInt,
+    ) -> Option<(Signature, SignatureRecoveryId)> {
         assert!(hash.bit_len() <= self.curve_params.base_point_order.bit_len());
 
         // `k` in [1, n - 1]
@@ -75,8 +64,8 @@ impl PrivateKey<'_> {
 
         let curve_params = self.curve_params;
         let kg = curve_params.curve.mul_point(&curve_params.base_point, k);
-        let r = kg.x;
-        let r = modulo(&r, &curve_params.base_point_order);
+
+        let r = modulo(&kg.x, &curve_params.base_point_order);
         if r.is_zero() {
             return None;
         }
@@ -88,7 +77,19 @@ impl PrivateKey<'_> {
             return None;
         }
 
-        Some(Signature::new(r, s, curve_params).unwrap())
+        // Creates a `SignatureRecoveryId` through bitwise operations.
+        //
+        // * `<< 1`: the most significant bit represents "low/high x".
+        // * `as u8`: casting a bool into an integer, true will be 1 and false will be 0.
+        // * `kg.x != r`: if true, `kg.x` is "high x".
+        //   `r` is kg.x modulo n. When kg.x is between n and p (kg.x >= n),
+        //   `r` is reduced to `kg.x - j*n`, where j is in [1, cofactor].
+        // * `kg.y.is_odd() as u8`: the least significant bit represents "even/odd y".
+        let recovery_id =
+            SignatureRecoveryId::from_u8(((kg.x != r) as u8) << 1 | (kg.y.is_odd() as u8))
+                .unwrap();
+
+        Some((Signature::new(r, s, curve_params).unwrap(), recovery_id))
     }
 }
 
@@ -96,6 +97,15 @@ impl PublicKey<'_> {
     /// Verifies the ECDSA `signature` of `hash`.
     /// This method assumes that the caller has made sure `public_key` is legitimate,
     /// it does not validate `public_key`.
+    ///
+    /// # Notes
+    ///
+    /// This function allows `hash` to be zero. If `hash` is zero, for any public key Q(x, y),
+    /// a signature (x, x) will pass the verification. For an example,
+    /// see the test case "test_verify_zero_hash" below.
+    ///
+    /// With this in mind, the higher level signing functions in this library (ecdsa_signing.rs)
+    /// don't allow zero hash by default.
     pub(crate) fn verify(&self, hash: &BigInt, signature: &Signature) -> bool {
         assert!(hash.bit_len() <= self.curve_params.base_point_order.bit_len());
 
@@ -123,6 +133,20 @@ impl PublicKey<'_> {
     }
 }
 
+/// Returns true if the hash length in bits equals the order of the base point in bits.
+pub(crate) fn hash_length_matches_base_point_order(
+    hash_byte_length: usize,
+    curve_params: &EllipticCurveParams,
+) -> bool {
+    debug_assert_eq!(
+        curve_params.base_point_order.bit_len() % u8::BITS as usize,
+        0,
+        "The bit length of the order of the base point is not 1-byte aligned."
+    );
+
+    hash_byte_length * u8::BITS as usize == curve_params.base_point_order.bit_len()
+}
+
 impl BigInt {
     /// Converts up to `max_bits_len` leading bits of `bytes` to an integer.
     pub(crate) fn from_be_bytes_with_max_bits_len(
@@ -147,6 +171,52 @@ impl BigInt {
         }
     }
 }
+
+/// Bit flags determine the viable public keys that can be recovered from a signature.
+///
+/// LowX: R.x < base_point_order
+/// HighX: R.x >= base_point_order
+/// EvenY: R.y is even
+/// OddY: R.y is odd
+///
+/// * R: curve point R = k * G
+///
+/// # Details
+///
+/// "...Given an ECDSA signature (r, s) and EC domain parameters, it is generally possible to determine
+/// the public key Q, at least to within a small number of choices...
+/// Potentially, several candidate public keys can be recovered from a signature. At a small cost, the
+/// signer can generate the ECDSA signature in such a way that only one of the candidate public keys
+/// is viable..."
+///
+/// For details, see SEC 1 Ver. 2.0[1], 4.1.6 Public Key Recovery Operation
+///
+/// [1]: http://www.secg.org/SEC1-Ver-2.0.pdf
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(u8)]
+pub enum SignatureRecoveryId {
+    LowXEvenY = 0,
+    LowXOddY = 1,
+    HighXEvenY = 2,
+    HighXOddY = 3,
+}
+
+impl SignatureRecoveryId {
+    pub(crate) fn from_u8(n: u8) -> Option<SignatureRecoveryId> {
+        Some(match n {
+            0 => SignatureRecoveryId::LowXEvenY,
+            1 => SignatureRecoveryId::LowXOddY,
+            2 => SignatureRecoveryId::HighXEvenY,
+            3 => SignatureRecoveryId::HighXOddY,
+            _ => return None,
+        })
+    }
+}
+
+pub(crate) const EMPTY_HASH_NOT_ALLOWED_ERROR_DISPLAY: &str = "Empty hash is not allowed";
+pub(crate) const ZERO_HASH_NOT_ALLOWED_ERROR_DISPLAY: &str = "Zero hash is not allowed";
+pub(crate) const HASH_BIT_LENGTH_DOES_NOT_MATCH_BASE_POINT_ORDER_ERROR_DISPLAY: &str =
+    "Hash length in bits doesn't equal to the order of the base point in bits";
 
 #[cfg(test)]
 mod tests {
@@ -195,40 +265,11 @@ mod tests {
 
         let hash = modulo(&BigInt::from(26), &curve_params.base_point_order);
         let k = BigInt::from(10);
-        let signature = private_key.sign(&hash, &k).unwrap();
+        let (signature, _) = private_key.sign(&hash, &k).unwrap();
         assert_eq!(signature.r, BigInt::from(7));
         assert_eq!(signature.s, BigInt::from(17));
 
         assert_eq!(public_key.verify(&hash, &signature), true);
-    }
-
-    #[test]
-    fn test_to_low_s_signature() {
-        // For secp256k1
-        // low s in [0x1, 0x7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0]
-        let secp256k1 = secp256k1();
-        let curve_order_half = BigInt::from_hex(
-            "7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0",
-        )
-        .unwrap();
-
-        // s1, s2
-        let data = [
-            (BigInt::one(), BigInt::one()),
-            (curve_order_half.clone(), curve_order_half.clone()),
-            (
-                &curve_order_half + BigInt::one(),
-                BigInt::from_hex(
-                    "7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0",
-                )
-                .unwrap(),
-            ),
-        ];
-
-        for (s1, s2) in data {
-            let signature = Signature::new(BigInt::one(), s1, secp256k1).unwrap();
-            assert_eq!(signature.to_low_s_signature().s, s2);
-        }
     }
 
     #[test]
@@ -249,7 +290,7 @@ mod tests {
         let public_key = private_key.public_key();
         let hash_n = BigInt::from_hex(hash_hex).unwrap();
         let k = BigInt::from_hex(k_hex).unwrap();
-        let signature = private_key.sign(&hash_n, &k).unwrap();
+        let (signature, _) = private_key.sign(&hash_n, &k).unwrap();
 
         // sign and verify
         let hex = signature.to_p1363_hex();
@@ -293,7 +334,7 @@ mod tests {
                 return true;
             }
 
-            let signature = private_key.sign(&hash_n, &k).unwrap();
+            let (signature, _) = private_key.sign(&hash_n, &k).unwrap();
             let success = public_key.verify(&hash_n, &signature);
             let failure = public_key.verify(&(&hash_n + BigInt::one()), &signature);
 
@@ -304,6 +345,32 @@ mod tests {
             .gen(Gen::new(GEN_SIZE))
             .tests(TEST_NUMBER)
             .quickcheck(prop as fn(HexString, HexString, HexString) -> bool)
+    }
+
+    #[test]
+    fn test_verify_zero_hash() {
+        let curve = secp256k1();
+        let private_key1 = PrivateKey::new(BigInt::from(1), curve).unwrap();
+        let public_key1 = private_key1.public_key();
+        let private_key2 = PrivateKey::new(BigInt::from(2), curve).unwrap();
+        let public_key2 = private_key2.public_key();
+        let hash_n = BigInt::zero();
+
+        let fake_signature = Signature::new(
+            public_key1.data.x.clone(),
+            public_key1.data.x.clone(),
+            curve,
+        )
+        .unwrap();
+        assert!(public_key1.verify(&hash_n, &fake_signature));
+
+        let fake_signature = Signature::new(
+            public_key2.data.x.clone(),
+            public_key2.data.x.clone(),
+            curve,
+        )
+        .unwrap();
+        assert!(public_key2.verify(&hash_n, &fake_signature));
     }
 
     #[test]

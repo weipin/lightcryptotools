@@ -15,7 +15,7 @@ pub fn is_zero_digits(digits: &BigUintSlice) -> bool {
 }
 
 impl BigInt {
-    pub(crate) fn is_zero(&self) -> bool {
+    pub fn is_zero(&self) -> bool {
         is_zero_digits(self.as_digits())
     }
 }

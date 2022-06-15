@@ -41,7 +41,7 @@ pub(crate) fn invert(a: &BigInt, n: &BigInt) -> Option<BigInt> {
         None
     } else {
         // ya = 1 mod n
-        Some(y)
+        Some(modulo(&y, n)) // ensures y > 0
     }
 }
 

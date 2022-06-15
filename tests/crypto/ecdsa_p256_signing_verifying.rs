@@ -28,7 +28,7 @@ fn test_ecdsa_p256_sha256_sign() {
     );
 
     let hash = Sha256::new().digest("sample");
-    let signature = sign_with_options(
+    let (signature, _) = sign_with_options(
         &hash,
         &private_key,
         &SigningOptions {
@@ -58,13 +58,14 @@ fn test_ecdsa_p256_sha384_sign() {
 
     let mut hasher = Sha384::new();
     let hash = hasher.digest("sample");
-    let signature = sign_with_options_and_rfc6979_hmac_hasher(
+    let (signature, _) = sign_with_options_and_rfc6979_hmac_hasher(
         &hash,
         &private_key,
         &SigningOptions {
             enforce_low_s: false,
             strict_hash_byte_length: false,
             employ_extra_random_data: false,
+            ..Default::default()
         },
         &mut hasher,
     )
@@ -98,13 +99,14 @@ fn test_ecdsa_p256_sha512_sign() {
 
     let mut hasher = Sha512::new();
     let hash = hasher.digest("sample");
-    let signature = sign_with_options_and_rfc6979_hmac_hasher(
+    let (signature, _) = sign_with_options_and_rfc6979_hmac_hasher(
         &hash,
         &private_key,
         &SigningOptions {
             enforce_low_s: false,
             strict_hash_byte_length: false,
             employ_extra_random_data: false,
+            ..Default::default()
         },
         &mut hasher,
     )

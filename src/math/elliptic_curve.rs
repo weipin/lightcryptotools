@@ -102,7 +102,11 @@ impl Curve {
     pub(crate) fn mul_point(&self, point: &Point, n: &BigInt) -> Point {
         debug_assert!(point.x >= BigInt::zero());
         debug_assert!(point.y >= BigInt::zero());
-        debug_assert!(n > &BigInt::zero());
+        debug_assert!(n >= &BigInt::zero());
+
+        if n.is_zero() {
+            return Point::identity_element();
+        }
 
         // Employs the double-and-add method.
         // https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication#Double-and-add

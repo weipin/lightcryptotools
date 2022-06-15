@@ -27,24 +27,6 @@ pub(crate) struct Rfc6979 {
     employ_extra_random_data: bool,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-#[non_exhaustive]
-pub enum GenerateNonceError {
-    FailedToGenerateRandomBytes(GetOsRandomBytesError),
-}
-
-impl Display for GenerateNonceError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            GenerateNonceError::FailedToGenerateRandomBytes(err) => {
-                write!(f, "Failed to generate random bytes: {err}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for GenerateNonceError {}
-
 impl Rfc6979 {
     pub(crate) fn new(q: BigInt, employ_extra_random_data: bool) -> Rfc6979 {
         let qlen = q.bit_len();
@@ -140,7 +122,7 @@ impl Rfc6979 {
     }
 
     fn int2octets(&self, n: &BigInt) -> Vec<u8> {
-        // http://tools.ietf.org/html/rfc6979#section-2.3.4
+        // http://tools.ietf.org/html/rfc6979#section-2.3.3
         assert!(n < &self.q);
         let mut bytes = n.to_be_bytes();
         if self.rlen / 8 > bytes.len() {
@@ -159,6 +141,24 @@ impl Rfc6979 {
         self.int2octets(&z2)
     }
 }
+
+#[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
+pub enum GenerateNonceError {
+    FailedToGenerateRandomBytes(GetOsRandomBytesError),
+}
+
+impl Display for GenerateNonceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GenerateNonceError::FailedToGenerateRandomBytes(err) => {
+                write!(f, "Failed to generate random bytes: {err}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for GenerateNonceError {}
 
 #[cfg(test)]
 mod tests {

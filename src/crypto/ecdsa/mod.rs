@@ -7,10 +7,12 @@
 pub(crate) mod ecdsa_core;
 pub(crate) mod ecdsa_encoding;
 pub(crate) mod ecdsa_key;
+pub(crate) mod ecdsa_public_key_recovery;
 pub(crate) mod ecdsa_signing;
 pub(crate) mod ecdsa_verifying;
 
-pub use ecdsa_core::Signature;
+pub use ecdsa_core::{Signature, SignatureRecoveryId};
 pub use ecdsa_key::{PrivateKey, PublicKey};
+pub use ecdsa_public_key_recovery::*;
 pub use ecdsa_signing::*;
 pub use ecdsa_verifying::*;

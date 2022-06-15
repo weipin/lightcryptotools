@@ -9,6 +9,7 @@ mod ecdsa_p256_signing_verifying;
 mod ecdsa_verifying_wycheproof;
 mod hmac_wycheproof;
 mod secp256k1_key;
+mod secp256k1_public_key_recovery;
 mod secp256k1_sec1;
 mod secp256k1_signing_verifying;
 mod sha3_short_msg_kat;

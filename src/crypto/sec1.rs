@@ -97,10 +97,10 @@ impl EllipticCurveParamsEncoding for Sec1 {
         };
 
         // y^2 = x^3 + a * x + b
-        let y_square = &x * &x * &x + &curve_params.curve.a * &x + &curve_params.curve.b;
-        let y_square = modulo(&y_square, &curve_params.curve.p);
+        let y_squared = &x * &x * &x + &curve_params.curve.a * &x + &curve_params.curve.b;
+        let y_squared = modulo(&y_squared, &curve_params.curve.p);
 
-        let (root1, root2) = match sqrt(&y_square, &curve_params.curve.p) {
+        let (root1, root2) = match sqrt(&y_squared, &curve_params.curve.p) {
             Some(roots) => roots,
             None => {
                 return Err(Box::new(PointDecodingError::YNotFound));
@@ -184,7 +184,7 @@ mod tests {
         // from fastecdsa.util import mod_sqrt
         //
         // _, public_key = keys.gen_keypair(curve.secp256k1)
-        // y_square = curve.secp256k1.evaluate(public_key.x)
+        // y_squared = curve.secp256k1.evaluate(public_key.x)
         // (root1, root2) = mod_sqrt(y_square, curve.secp256k1.p)
         // print(f'x: {hex(public_key.x)}\ny1: {hex(root1)}\ny2: {hex(root2)}')
         // ```

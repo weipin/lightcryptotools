@@ -25,7 +25,7 @@ fn secp256k1_signing_and_verifying(bench: &mut Bencher) {
     let hash_bytes = hex_to_bytes(random_hex(hash_bytes_len * 2)).unwrap();
 
     bench.iter(|| {
-        let signature = ecdsa::sign_with_options(
+        let (signature, _) = ecdsa::sign_with_options(
             &hash_bytes,
             &private_key,
             &SigningOptions {
