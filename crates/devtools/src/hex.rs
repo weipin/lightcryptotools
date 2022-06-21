@@ -21,13 +21,22 @@ pub fn random_hex(n: usize) -> String {
     String::from(from_utf8(&chars).unwrap())
 }
 
+/// Pads `hex` (with a leading 0) if necessary and makes the length an even integer.
+/// `hex` is expected to have an optional prefix '0x'.
+///
+/// As a helper function mainly used for testing, this function does not validate `hex`.
 pub fn byte_aligned_hex(hex: &str) -> Cow<str> {
     if hex.len() & 1 == 0 {
         hex.into()
     } else {
         let mut t = String::with_capacity(hex.len() + 1);
-        t.push('0');
-        t.push_str(hex);
+        if hex.starts_with("0x") {
+            t.push_str("0x0");
+            t.push_str(&hex[2..]);
+        } else {
+            t.push('0');
+            t.push_str(hex);
+        }
         t.into()
     }
 }

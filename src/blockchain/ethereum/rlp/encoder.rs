@@ -8,6 +8,7 @@
 
 use super::core::RlpItemType;
 use super::encoding::{encode_payload_length, encode_single_value};
+use crate::bigint::BigUint;
 use crate::tools::bytes::strip_leading_zeros;
 use crate::tools::codable::EncodingItem;
 
@@ -24,6 +25,13 @@ impl EncodingItem for RlpEncodingItem {
     }
 
     fn encode_u64(&mut self, n: u64) {
+        self.encoded_data
+            .append(&mut encode_single_value(strip_leading_zeros(
+                &n.to_be_bytes(),
+            )));
+    }
+
+    fn encode_biguint(&mut self, n: &BigUint) {
         self.encoded_data
             .append(&mut encode_single_value(strip_leading_zeros(
                 &n.to_be_bytes(),

@@ -5,7 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use devtools::path::integration_testing_data_path;
-use lightcryptotools::blockchain::ethereum::account::eoa::{EoaPrivateKey, EoaPrivateKeyData};
+use lightcryptotools::blockchain::ethereum::account::{EoaPrivateKey, EoaPrivateKeyData};
 use lightcryptotools::crypto::codecs::hex_to_bytes;
 use serde_json::Value;
 use std::fs::File;

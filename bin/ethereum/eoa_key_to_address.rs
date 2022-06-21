@@ -11,7 +11,7 @@
 //! cargo run --bin eoa_key_to_address -- c85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4
 //! cargo run --bin eoa_key_to_address -- 0xc85ef7d79691fe79573b1a7064c19c1a9819ebdbd1faaab1a8ec92344438aaf4
 
-use lightcryptotools::blockchain::ethereum::account::eoa::{EoaPrivateKey, EoaPrivateKeyData};
+use lightcryptotools::blockchain::ethereum::account::{EoaPrivateKey, EoaPrivateKeyData};
 use lightcryptotools::crypto::codecs::hex_to_bytes;
 use std::borrow::Cow;
 

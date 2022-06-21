@@ -9,9 +9,10 @@ pub(crate) mod bigint_core;
 mod bigint_display;
 mod bigint_from;
 mod bigint_into;
-mod bigint_new;
+pub(crate) mod bigint_new;
 mod bigint_slice;
 mod bigint_vec;
+mod biguint;
 mod bits;
 mod bytes;
 mod cmp;
@@ -29,3 +30,4 @@ mod zero;
 
 pub use bigint_core::BigInt;
 pub(crate) use bigint_core::Sign;
+pub use biguint::BigUint;

@@ -19,6 +19,12 @@ pub struct BigInt {
     pub(crate) sign: Sign,
 }
 
+impl BigInt {
+    pub(crate) fn is_sign_negative(&self) -> bool {
+        self.sign == Sign::Negative
+    }
+}
+
 /// Denotes the sign of a big integer.
 ///
 /// A big integer, including 0, can be denoted as either positive or negative.

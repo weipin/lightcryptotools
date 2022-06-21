@@ -8,6 +8,7 @@
 
 use super::core::RlpItemType;
 use super::decoding::{decode_data, decode_list_payload, RlpDataDecodingError};
+use crate::bigint::BigUint;
 use crate::tools::codable::DecodingItem;
 use std::str::from_utf8;
 
@@ -40,6 +41,14 @@ impl<'a> DecodingItem<'a> for RlpDecodingItem<'a> {
         let n = u64::from_be_bytes(n_bytes);
 
         Ok(n)
+    }
+
+    fn decode_as_biguint(&self) -> Result<BigUint, Self::Error> {
+        if self.item_type != RlpItemType::SingleValue {
+            return Err(RlpDataDecodingError::InvalidFormat);
+        }
+
+        Ok(BigUint::from_be_bytes(self.payload))
     }
 
     fn decode_as_str(&self) -> Result<&str, Self::Error> {

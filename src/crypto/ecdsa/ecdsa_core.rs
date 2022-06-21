@@ -39,6 +39,10 @@ impl<'a> Signature<'a> {
     }
 
     pub(crate) fn is_low_s_signature(&self) -> bool {
+        debug_assert!(self.curve_params.base_point_order.is_odd());
+
+        // LOW_S: ...is at most the curve order divided by 2...
+        // See BIP146: https://github.com/bitcoin/bips/blob/master/bip-0146.mediawiki#LOW_S
         self.s <= (&self.curve_params.base_point_order >> 1)
     }
 }
@@ -102,9 +106,9 @@ impl PublicKey<'_> {
     ///
     /// This function allows `hash` to be zero. If `hash` is zero, for any public key Q(x, y),
     /// a signature (x, x) will pass the verification. For an example,
-    /// see the test case "test_verify_zero_hash" below.
+    /// see the testcase "test_verify_zero_hash" below.
     ///
-    /// With this in mind, the higher level signing functions in this library (ecdsa_signing.rs)
+    /// With this in mind, the higher level verifying functions in this library (ecdsa_verifying.rs)
     /// don't allow zero hash by default.
     pub(crate) fn verify(&self, hash: &BigInt, signature: &Signature) -> bool {
         assert!(hash.bit_len() <= self.curve_params.base_point_order.bit_len());
@@ -211,6 +215,21 @@ impl SignatureRecoveryId {
             _ => return None,
         })
     }
+
+    pub(crate) fn y_parity(&self) -> YParity {
+        match self {
+            SignatureRecoveryId::LowXOddY | SignatureRecoveryId::HighXOddY => YParity::Odd,
+            SignatureRecoveryId::LowXEvenY | SignatureRecoveryId::HighXEvenY => YParity::Even,
+        }
+    }
+}
+
+/// The parity (0 for even, 1 for odd) of the y-value of a secp256k1 signature
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(u8)]
+pub(crate) enum YParity {
+    Even = 0,
+    Odd = 1,
 }
 
 pub(crate) const EMPTY_HASH_NOT_ALLOWED_ERROR_DISPLAY: &str = "Empty hash is not allowed";
@@ -424,6 +443,34 @@ mod tests {
                 BigInt::from_be_bytes_with_max_bits_len(bytes, max_bits_len, Sign::Positive),
                 n
             );
+        }
+    }
+
+    #[test]
+    fn test_is_low_s_signature() {
+        let curve = secp256k1();
+
+        // curve order divided by 2
+        let order_div_2 = BigInt::from_hex(
+            "7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0",
+        )
+        .unwrap();
+        assert_eq!(&curve.base_point_order >> 1, order_div_2);
+
+        // (s, is_low_s)
+        let data = [
+            (order_div_2.clone(), true),
+            (&order_div_2 - BigInt::one(), true),  // -1
+            (&order_div_2 + BigInt::one(), false), // +1
+        ];
+
+        for (s, is_low_s) in data {
+            let signature = Signature {
+                r: BigInt::from(1),
+                s,
+                curve_params: curve,
+            };
+            assert_eq!(signature.is_low_s_signature(), is_low_s);
         }
     }
 }

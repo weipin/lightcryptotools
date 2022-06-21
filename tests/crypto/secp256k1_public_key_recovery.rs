@@ -119,7 +119,7 @@ fn test_recovery(enforce_low_s: bool) {
         let m_hex = value["m"].as_str().unwrap();
         let m = hex_to_bytes(m_hex).unwrap();
 
-        // Ignore zero hash
+        // Ignore zero hash, for recovery doesn't allow zero hash input
         if BigInt::from_hex(m_hex).unwrap().is_zero() {
             continue;
         }
@@ -133,7 +133,6 @@ fn test_recovery(enforce_low_s: bool) {
             &SigningOptions {
                 enforce_low_s,
                 employ_extra_random_data: false,
-                is_zero_hash_allowed: true,
                 ..Default::default()
             },
         )

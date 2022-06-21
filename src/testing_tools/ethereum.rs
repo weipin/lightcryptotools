@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::blockchain::ethereum::account::eoa::{EoaPrivateKey, EoaPrivateKeyData};
+use crate::blockchain::ethereum::account::{EoaPrivateKey, EoaPrivateKeyData};
 use crate::crypto::codecs::hex_to_bytes;
 
 pub(crate) fn private_key_hex_to_address(private_key_hex: &str) -> String {
