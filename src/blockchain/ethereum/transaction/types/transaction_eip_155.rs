@@ -10,6 +10,8 @@ use crate::blockchain::ethereum::transaction::payload::eip_155::PayloadEip155;
 use crate::crypto::ecdsa::{ecdsa_signing, PrivateKey, SigningOptions};
 use crate::crypto::hash::{Keccak256, UnkeyedHash};
 use crate::tools::codable::encode;
+use std::fmt;
+use std::fmt::Display;
 
 pub struct TransactionEip155 {
     pub(crate) payload: PayloadEip155,
@@ -51,6 +53,27 @@ impl PayloadEip155 {
             r,
             s,
         })
+    }
+}
+
+impl Display for TransactionEip155 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "===================")?;
+        writeln!(f, "Transaction EIP 155")?;
+        writeln!(f, "===================")?;
+        writeln!(f)?;
+        writeln!(f, "-------")?;
+        writeln!(f, "Payload")?;
+        writeln!(f, "-------")?;
+        writeln!(f, "{}", self.payload)?;
+
+        writeln!(f, "---------")?;
+        writeln!(f, "Signature")?;
+        writeln!(f, "---------")?;
+        writeln!(f, "v: {}", self.v)?;
+        writeln!(f, "r: {}", self.r)?;
+        writeln!(f, "s: {}", self.s)?;
+        Ok(())
     }
 }
 

@@ -12,6 +12,8 @@ use crate::crypto::ecdsa::ecdsa_core::YParity;
 use crate::crypto::ecdsa::{ecdsa_signing, PrivateKey, SigningOptions};
 use crate::crypto::hash::{Keccak256, UnkeyedHash};
 use crate::tools::codable::encode;
+use std::fmt;
+use std::fmt::Display;
 
 pub struct TransactionEip1559 {
     pub(crate) payload: PayloadEip1559,
@@ -63,6 +65,27 @@ impl TransactionEip1559 {
         data.append(&mut rlp_data);
 
         data
+    }
+}
+
+impl Display for TransactionEip1559 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "====================")?;
+        writeln!(f, "Transaction EIP 1559")?;
+        writeln!(f, "====================")?;
+        writeln!(f)?;
+        writeln!(f, "-------")?;
+        writeln!(f, "Payload")?;
+        writeln!(f, "-------")?;
+        writeln!(f, "{}", self.payload)?;
+
+        writeln!(f, "---------")?;
+        writeln!(f, "Signature")?;
+        writeln!(f, "---------")?;
+        writeln!(f, "y_parity: {}", self.y_parity)?;
+        writeln!(f, "r: {}", self.r)?;
+        writeln!(f, "s: {}", self.s)?;
+        Ok(())
     }
 }
 

@@ -8,7 +8,7 @@
 //!
 //! # Examples
 //!
-//! cargo run --bin randombytes -- 32
+//! cargo run --example randombytes -- 32
 
 use lightcryptotools::crypto::codecs::bytes_to_lower_hex;
 use lightcryptotools::random::generator::get_os_random_bytes;

@@ -48,7 +48,12 @@ impl<'a> DecodingItem<'a> for RlpDecodingItem<'a> {
             return Err(RlpDataDecodingError::InvalidFormat);
         }
 
-        Ok(BigUint::from_be_bytes(self.payload))
+        Ok(if self.payload.is_empty() {
+            // BigInt represents 0 as [0_u8] -- empty is not allowed.
+            BigUint::from_be_bytes(&[0])
+        } else {
+            BigUint::from_be_bytes(self.payload)
+        })
     }
 
     fn decode_as_str(&self) -> Result<&str, Self::Error> {

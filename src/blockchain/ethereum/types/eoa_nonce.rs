@@ -4,6 +4,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use std::fmt;
+use std::fmt::Display;
+
 /// Represents an EOA nonce.
 ///
 /// nonce: ..."A scalar value equal to the number of transactions
@@ -40,6 +43,13 @@ impl TryFrom<u64> for EoaNonce {
             None => Err("out of range: nonce equals to 2^64-1"),
             Some(nonce) => Ok(nonce),
         }
+    }
+}
+
+impl Display for EoaNonce {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let n = self.0;
+        write!(f, "{n:#x}")
     }
 }
 

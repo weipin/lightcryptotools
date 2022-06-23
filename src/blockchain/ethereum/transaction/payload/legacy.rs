@@ -10,6 +10,9 @@ use crate::blockchain::ethereum::transaction::builder::{
 use crate::blockchain::ethereum::types::address::Address;
 use crate::blockchain::ethereum::types::currency_unit::Wei;
 use crate::blockchain::ethereum::types::eoa_nonce::EoaNonce;
+use crate::crypto::codecs::bytes_to_lower_hex;
+use std::fmt;
+use std::fmt::Display;
 
 pub struct PayloadLegacy {
     pub(crate) nonce: EoaNonce,
@@ -48,6 +51,19 @@ impl TransactionBuilder {
                 data,
             })
         }
+    }
+}
+
+impl Display for PayloadLegacy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "nonce: {}", self.nonce)?;
+        writeln!(f, "gas_price: {}", self.gas_price)?;
+        writeln!(f, "gas_limit: 0x{:x}", self.gas_limit)?;
+        writeln!(f, "destination: {}", self.destination)?;
+        writeln!(f, "amount: {}", self.amount)?;
+        writeln!(f, "data: 0x{}", bytes_to_lower_hex(&self.data))?;
+
+        Ok(())
     }
 }
 

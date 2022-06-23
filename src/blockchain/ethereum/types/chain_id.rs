@@ -5,6 +5,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::bigint::BigUint;
+use std::fmt;
+use std::fmt::Display;
 
 /// Represents Chain ID
 #[derive(Debug, PartialEq)]
@@ -19,6 +21,12 @@ impl From<BigUint> for ChainId {
 impl From<u64> for ChainId {
     fn from(n: u64) -> Self {
         ChainId(BigUint::from(n))
+    }
+}
+
+impl Display for ChainId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 

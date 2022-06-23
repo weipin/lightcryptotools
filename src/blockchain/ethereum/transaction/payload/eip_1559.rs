@@ -6,6 +6,9 @@
 
 use crate::blockchain::ethereum::transaction::{TransactionBuilder, TransactionBuildingError};
 use crate::blockchain::ethereum::types::{AccessList, Address, ChainId, EoaNonce, Wei};
+use crate::crypto::codecs::bytes_to_lower_hex;
+use std::fmt;
+use std::fmt::Display;
 
 pub struct PayloadEip1559 {
     pub(crate) chain_id: ChainId,
@@ -55,6 +58,26 @@ impl TransactionBuilder {
                 access_list,
             })
         }
+    }
+}
+
+impl Display for PayloadEip1559 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "chain_id: {}", self.chain_id)?;
+        writeln!(f, "nonce: {}", self.nonce)?;
+        writeln!(
+            f,
+            "max_priority_fee_per_gas: {}",
+            self.max_priority_fee_per_gas
+        )?;
+        writeln!(f, "max_fee_per_gas: {}", self.max_fee_per_gas)?;
+        writeln!(f, "gas_limit: 0x{:x}", self.gas_limit)?;
+        writeln!(f, "destination: {}", self.destination)?;
+        writeln!(f, "amount: {}", self.amount)?;
+        writeln!(f, "data: 0x{}", bytes_to_lower_hex(&self.data))?;
+        writeln!(f, "access_list: {}", &self.access_list)?;
+
+        Ok(())
     }
 }
 

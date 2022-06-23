@@ -8,6 +8,9 @@ use crate::blockchain::ethereum::transaction::{TransactionBuilder, TransactionBu
 use crate::blockchain::ethereum::types::address::Address;
 use crate::blockchain::ethereum::types::eoa_nonce::EoaNonce;
 use crate::blockchain::ethereum::types::{ChainId, Wei};
+use crate::crypto::codecs::bytes_to_lower_hex;
+use std::fmt;
+use std::fmt::Display;
 
 pub struct PayloadEip155 {
     pub(crate) chain_id: ChainId,
@@ -50,6 +53,20 @@ impl TransactionBuilder {
                 data,
             })
         }
+    }
+}
+
+impl Display for PayloadEip155 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "chain_id: {}", self.chain_id)?;
+        writeln!(f, "nonce: {}", self.nonce)?;
+        writeln!(f, "gas_price: {}", self.gas_price)?;
+        writeln!(f, "gas_limit: 0x{:x}", self.gas_limit)?;
+        writeln!(f, "destination: {}", self.destination)?;
+        writeln!(f, "amount: {}", self.amount)?;
+        writeln!(f, "data: 0x{}", bytes_to_lower_hex(&self.data))?;
+
+        Ok(())
     }
 }
 

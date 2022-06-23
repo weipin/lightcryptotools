@@ -10,6 +10,8 @@ use crate::blockchain::ethereum::transaction::payload::legacy::PayloadLegacy;
 use crate::crypto::ecdsa::{ecdsa_signing, PrivateKey, SigningOptions};
 use crate::crypto::hash::{Keccak256, UnkeyedHash};
 use crate::tools::codable::encode;
+use std::fmt;
+use std::fmt::Display;
 
 pub struct TransactionLegacy {
     pub(crate) payload: PayloadLegacy,
@@ -49,6 +51,27 @@ impl PayloadLegacy {
             r,
             s,
         })
+    }
+}
+
+impl Display for TransactionLegacy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "==================")?;
+        writeln!(f, "Transaction Legacy")?;
+        writeln!(f, "==================")?;
+        writeln!(f)?;
+        writeln!(f, "-------")?;
+        writeln!(f, "Payload")?;
+        writeln!(f, "-------")?;
+        writeln!(f, "{}", self.payload)?;
+
+        writeln!(f, "---------")?;
+        writeln!(f, "Signature")?;
+        writeln!(f, "---------")?;
+        writeln!(f, "v: 0x{:x} ({})", self.v, self.v)?;
+        writeln!(f, "r: {}", self.r)?;
+        writeln!(f, "s: {}", self.s)?;
+        Ok(())
     }
 }
 

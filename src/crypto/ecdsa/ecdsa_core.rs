@@ -9,6 +9,8 @@ use crate::bigint::bigint_core::Sign;
 use crate::bigint::BigInt;
 use crate::crypto::elliptic_curve_params::EllipticCurveParams;
 use crate::math::modular::{invert, modulo};
+use std::fmt;
+use std::fmt::Display;
 
 #[derive(Clone, Debug)]
 pub struct Signature<'a> {
@@ -230,6 +232,29 @@ impl SignatureRecoveryId {
 pub(crate) enum YParity {
     Even = 0,
     Odd = 1,
+}
+
+impl YParity {
+    pub(crate) fn from_u8(n: u8) -> Option<YParity> {
+        Some(match n {
+            0 => YParity::Even,
+            1 => YParity::Odd,
+            _ => return None,
+        })
+    }
+}
+
+impl Display for YParity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            YParity::Even => {
+                write!(f, "{} (even)", *self as u8)
+            }
+            YParity::Odd => {
+                write!(f, "{} (odd)", *self as u8)
+            }
+        }
+    }
 }
 
 pub(crate) const EMPTY_HASH_NOT_ALLOWED_ERROR_DISPLAY: &str = "Empty hash is not allowed";

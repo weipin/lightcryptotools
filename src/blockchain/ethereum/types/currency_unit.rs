@@ -6,6 +6,8 @@
 
 use crate::bigint::bigint_new::ParseIntError;
 use crate::bigint::BigUint;
+use std::fmt;
+use std::fmt::Display;
 
 /// Represents currency unit Wei.
 ///
@@ -48,6 +50,13 @@ impl TryFrom<&str> for Wei {
     fn try_from(s: &str) -> Result<Wei, ParseIntError> {
         let n = s.try_into()?;
         Ok(Wei(n))
+    }
+}
+
+impl Display for Wei {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let hex = self.0.to_lower_hex();
+        write!(f, "0x{hex}")
     }
 }
 

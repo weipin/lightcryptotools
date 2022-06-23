@@ -16,14 +16,22 @@ serde_json = "1.0.79"
 rust_crypto_sha2 = { package = "sha2", version = "0.10.2" }
 num-bigint = "0.4.3"
 
-[[bin]]
-path = "bin/randombytes.rs"
+[[example]]
+path = "examples/randombytes.rs"
 name = "randombytes"
 
-[[bin]]
-path = "bin/ethereum/eoa_key_to_address.rs"
+[[example]]
+path = "examples/ethereum/eoa_key_to_address.rs"
 name = "eoa_key_to_address"
 
-[[bin]]
-path = "bin/ethereum/eoa_gen_vanity_address.rs"
+[[example]]
+path = "examples/ethereum/eoa_gen_vanity_address.rs"
 name = "eoa_gen_vanity_address"
+
+[[example]]
+path = "examples/ethereum/rlp_decoder.rs"
+name = "rlp_decoder"
+
+[[example]]
+path = "examples/ethereum/tx_decoder.rs"
+name = "tx_decoder"

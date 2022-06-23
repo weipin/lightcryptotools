@@ -9,7 +9,7 @@
 //!
 //! # Examples
 //!
-//! cargo run --bin eoa_gen_vanity_address -- 3C
+//! cargo run --example eoa_gen_vanity_address -- 3C
 
 extern crate core;
 

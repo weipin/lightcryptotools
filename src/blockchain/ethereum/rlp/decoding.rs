@@ -162,6 +162,7 @@ fn decode_data_header(
 #[non_exhaustive]
 pub enum RlpDataDecodingError {
     InvalidFormat,
+    TransactionTypeMismatch,
 }
 
 impl Display for RlpDataDecodingError {
@@ -169,6 +170,9 @@ impl Display for RlpDataDecodingError {
         match self {
             RlpDataDecodingError::InvalidFormat => {
                 write!(f, "Invalid format")
+            }
+            RlpDataDecodingError::TransactionTypeMismatch => {
+                write!(f, "Transaction interpreted with the wrong type")
             }
         }
     }

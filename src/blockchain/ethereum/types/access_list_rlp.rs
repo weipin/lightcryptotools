@@ -5,8 +5,12 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::access_list::{AccessList, AccessListItem};
+use crate::blockchain::ethereum::rlp::decoder::RlpDecodingItem;
+use crate::blockchain::ethereum::rlp::decoding::RlpDataDecodingError;
 use crate::blockchain::ethereum::rlp::encoder::RlpEncodingItem;
-use crate::tools::codable::{Encodable, EncodingItem};
+use crate::blockchain::ethereum::rlp::RlpItemType;
+use crate::blockchain::ethereum::types::{Address, StorageKey};
+use crate::tools::codable::{Decodable, DecodingItem, Encodable, EncodingItem};
 
 impl Encodable<RlpEncodingItem> for AccessListItem {
     fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
@@ -25,6 +29,36 @@ impl Encodable<RlpEncodingItem> for AccessListItem {
     }
 }
 
+impl<'a> Decodable<'a, RlpDecodingItem<'a>> for AccessListItem {
+    fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
+        return match decoding_item.item_type {
+            RlpItemType::SingleValue => Err(RlpDataDecodingError::InvalidFormat),
+            RlpItemType::List => match decoding_item.decode_as_items() {
+                Ok(items) => {
+                    if items.len() != 2 {
+                        return Err(RlpDataDecodingError::InvalidFormat);
+                    }
+                    let mut iter = items.iter();
+
+                    let address = Address::decode_from(iter.next().unwrap())?;
+                    let storage_keys_decoding_items = iter.next().unwrap().decode_as_items()?;
+                    let mut storage_keys =
+                        Vec::with_capacity(storage_keys_decoding_items.len());
+                    for item in storage_keys_decoding_items {
+                        let storage_key = StorageKey::decode_from(&item)?;
+                        storage_keys.push(storage_key);
+                    }
+                    Ok(AccessListItem {
+                        address,
+                        storage_keys,
+                    })
+                }
+                Err(err) => Err(err),
+            },
+        };
+    }
+}
+
 impl Encodable<RlpEncodingItem> for AccessList {
     fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
         let mut list_encoding_item = RlpEncodingItem::new(); // items container
@@ -34,5 +68,24 @@ impl Encodable<RlpEncodingItem> for AccessList {
         }
 
         encoding_item.encode_list_payload(&mut list_encoding_item);
+    }
+}
+
+impl<'a> Decodable<'a, RlpDecodingItem<'a>> for AccessList {
+    fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
+        return match decoding_item.item_type {
+            RlpItemType::SingleValue => Err(RlpDataDecodingError::InvalidFormat),
+            RlpItemType::List => match decoding_item.decode_as_items() {
+                Ok(items) => {
+                    let mut access_list_items = Vec::with_capacity(items.len());
+                    for item in items {
+                        let access_list_item = AccessListItem::decode_from(&item)?;
+                        access_list_items.push(access_list_item);
+                    }
+                    Ok(AccessList(access_list_items))
+                }
+                Err(err) => Err(err),
+            },
+        };
     }
 }

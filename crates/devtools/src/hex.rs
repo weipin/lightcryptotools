@@ -21,10 +21,10 @@ pub fn random_hex(n: usize) -> String {
     String::from(from_utf8(&chars).unwrap())
 }
 
-/// Pads `hex` (with a leading 0) if necessary and makes the length an even integer.
+/// Pads `hex` (with a leading 0) if necessary and makes the length even.
 /// `hex` is expected to have an optional prefix '0x'.
 ///
-/// As a helper function mainly used for testing, this function does not validate `hex`.
+/// This function does not validate `hex`, for it's a helper function mainly used for testing.
 pub fn byte_aligned_hex(hex: &str) -> Cow<str> {
     if hex.len() & 1 == 0 {
         hex.into()

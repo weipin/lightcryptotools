@@ -6,9 +6,11 @@
 
 use super::bigint_core::{BigInt, Sign};
 use crate::bigint::bigint_new::ParseIntError;
-use std::ops::{Add, Mul};
+use std::fmt;
+use std::fmt::Display;
+use std::ops::{Add, Mul, Shr, Sub};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct BigUint(BigInt);
 
 macro_rules! impl_biguint_from_unsigned_int {
@@ -93,6 +95,22 @@ impl Add for BigUint {
     }
 }
 
+impl<'a> Sub<BigUint> for &'a BigUint {
+    type Output = BigUint;
+
+    fn sub(self, rhs: BigUint) -> Self::Output {
+        BigUint((&self.0).sub(&rhs.0))
+    }
+}
+
+impl Sub for BigUint {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        BigUint((&self.0).sub(&rhs.0))
+    }
+}
+
 impl<'a> Mul<BigUint> for &'a BigUint {
     type Output = BigUint;
 
@@ -106,6 +124,20 @@ impl Mul for BigUint {
 
     fn mul(self, rhs: Self) -> Self::Output {
         BigUint((&self.0).mul(&rhs.0))
+    }
+}
+
+impl Shr<usize> for BigUint {
+    type Output = Self;
+
+    fn shr(self, rhs: usize) -> Self::Output {
+        BigUint((&self.0).shr(rhs))
+    }
+}
+
+impl Display for BigUint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 
