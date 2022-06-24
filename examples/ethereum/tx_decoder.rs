@@ -63,20 +63,14 @@ use lightcryptotools::blockchain::ethereum::transaction::{
 };
 use lightcryptotools::crypto::codecs::hex_to_bytes;
 use lightcryptotools::tools::codable::decode;
-use std::borrow::Cow;
 
 fn main() {
     let tx_hex = std::env::args()
         .nth(1)
         .expect("Error: the parameter is missing");
+    let tx_hex = tx_hex.strip_prefix("0x").unwrap_or(&tx_hex);
 
-    let tx_hex: Cow<str> = if let Some(hex) = tx_hex.strip_prefix("0x") {
-        hex.into()
-    } else {
-        tx_hex.into()
-    };
-
-    let tx_data = match hex_to_bytes(tx_hex.as_ref()) {
+    let tx_data = match hex_to_bytes(tx_hex) {
         Ok(data) => data,
         Err(err) => {
             panic!("Invalid hex input: {err}");

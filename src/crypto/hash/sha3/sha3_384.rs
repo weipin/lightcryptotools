@@ -30,7 +30,7 @@ impl UnkeyedHash for Sha3_384 {
     // `200 - 2 * OUTPUT_BYTE_LENGTH`
     const INPUT_BLOCK_BYTE_LENGTH: usize = 104;
 
-    // `384 / size_of::<u64>()`
+    // `384 / u8::BITS`
     const OUTPUT_BYTE_LENGTH: usize = 48;
 
     fn digest<T: AsRef<[u8]>>(&mut self, message: T) -> Vec<u8> {

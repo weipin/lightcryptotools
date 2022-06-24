@@ -29,20 +29,14 @@ use lightcryptotools::blockchain::ethereum::rlp::RlpItemType;
 use lightcryptotools::crypto::codecs::{bytes_to_lower_hex, hex_to_bytes};
 use lightcryptotools::tools::codable::{decode, Decodable, DecodingItem};
 use serde_json::{to_string_pretty, Value};
-use std::borrow::Cow;
 
 fn main() {
     let rlp_hex = std::env::args()
         .nth(1)
         .expect("Error: the parameter is missing");
+    let rlp_hex = rlp_hex.strip_prefix("0x").unwrap_or(&rlp_hex);
 
-    let rlp_hex: Cow<str> = if let Some(hex) = rlp_hex.strip_prefix("0x") {
-        hex.into()
-    } else {
-        rlp_hex.into()
-    };
-
-    let rlp_data = match hex_to_bytes(rlp_hex.as_ref()) {
+    let rlp_data = match hex_to_bytes(rlp_hex) {
         Ok(data) => data,
         Err(err) => {
             println!("invalid hex input: {err}");

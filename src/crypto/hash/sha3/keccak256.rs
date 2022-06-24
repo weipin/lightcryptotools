@@ -30,7 +30,7 @@ impl UnkeyedHash for Keccak256 {
     // `200 - 2 * OUTPUT_BYTE_LENGTH`
     const INPUT_BLOCK_BYTE_LENGTH: usize = 136;
 
-    // `256 / size_of::<u64>()`
+    // `256 / u8::BITS`
     const OUTPUT_BYTE_LENGTH: usize = 32;
 
     fn digest<T: AsRef<[u8]>>(&mut self, message: T) -> Vec<u8> {

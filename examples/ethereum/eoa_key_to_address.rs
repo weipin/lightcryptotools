@@ -13,20 +13,14 @@
 
 use lightcryptotools::blockchain::ethereum::account::{EoaPrivateKey, EoaPrivateKeyData};
 use lightcryptotools::crypto::codecs::hex_to_bytes;
-use std::borrow::Cow;
 
 fn main() {
     let key_hex = std::env::args()
         .nth(1)
         .expect("Error: the parameter is missing");
+    let key_hex = key_hex.strip_prefix("0x").unwrap_or(&key_hex);
 
-    let key_hex: Cow<str> = if let Some(hex) = key_hex.strip_prefix("0x") {
-        hex.into()
-    } else {
-        key_hex.into()
-    };
-
-    let key_bytes = hex_to_bytes(key_hex.as_ref()).expect("invalid key hex");
+    let key_bytes = hex_to_bytes(key_hex).expect("invalid key hex");
     let key_data: EoaPrivateKeyData = key_bytes.try_into().expect("invalid key data");
     let eoa_private_key = EoaPrivateKey::new(key_data).expect("invalid private key");
     let eoa_public_key = eoa_private_key.public_key();
