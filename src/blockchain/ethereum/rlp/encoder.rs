@@ -26,31 +26,26 @@ impl EncodingItem for RlpEncodingItem {
 
     fn encode_u64(&mut self, n: u64) {
         self.encoded_data
-            .append(&mut encode_single_value(strip_leading_zeros(
-                &n.to_be_bytes(),
-            )));
+            .extend(&encode_single_value(strip_leading_zeros(&n.to_be_bytes())));
     }
 
     fn encode_biguint(&mut self, n: &BigUint) {
         self.encoded_data
-            .append(&mut encode_single_value(strip_leading_zeros(
-                &n.to_be_bytes(),
-            )));
+            .extend(&encode_single_value(strip_leading_zeros(&n.to_be_bytes())));
     }
 
     fn encode_str(&mut self, s: &str) {
-        self.encoded_data
-            .append(&mut encode_single_value(s.as_bytes()));
+        self.encoded_data.extend(&encode_single_value(s.as_bytes()));
     }
 
     fn encode_bytes(&mut self, bytes: &[u8]) {
-        self.encoded_data.append(&mut encode_single_value(bytes));
+        self.encoded_data.extend(&encode_single_value(bytes));
     }
 
     fn encode_list_payload(&mut self, item: &mut RlpEncodingItem) {
-        let mut header = encode_payload_length(RlpItemType::List, &item.encoded_data);
-        self.encoded_data.append(&mut header);
-        self.encoded_data.append(&mut item.encoded_data);
+        let header = encode_payload_length(RlpItemType::List, &item.encoded_data);
+        self.encoded_data.extend(&header);
+        self.encoded_data.extend(&item.encoded_data);
     }
 
     fn take_data(&mut self) -> Vec<u8> {

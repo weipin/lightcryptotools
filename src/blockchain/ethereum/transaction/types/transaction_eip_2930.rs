@@ -39,10 +39,10 @@ impl PayloadEip2930 {
         // keccak256(0x01 || rlp([chainId, nonce, gasPrice, gasLimit, to, value, data, accessList]))...
         //
         // -- from EIP-2930
-        let mut payload_rlp_data = encode(&self);
+        let payload_rlp_data = encode(&self);
         let mut message = Vec::with_capacity(payload_rlp_data.len() + 1);
         message.push(TransactionEip2930::transaction_type());
-        message.append(&mut payload_rlp_data);
+        message.extend(&payload_rlp_data);
         let hash = Keccak256::new().digest(message);
 
         let (signature, recovery_id) =
@@ -63,11 +63,11 @@ impl PayloadEip2930 {
 
 impl TransactionEip2930 {
     pub fn encode(&self) -> Vec<u8> {
-        let mut rlp_data = encode(self);
+        let rlp_data = encode(self);
         let mut data = Vec::with_capacity(rlp_data.len() + 1);
 
         data.push(TransactionEip2930::transaction_type());
-        data.append(&mut rlp_data);
+        data.extend(&rlp_data);
 
         data
     }

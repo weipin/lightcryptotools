@@ -113,7 +113,7 @@ fn sha384_512_digest_core(
     // Appends bit 1, 1-byte aligned
     remaining.push(0x80);
     // Appends zero bytes
-    remaining.append(&mut vec![0; (k - 7) as usize / 8]);
+    remaining.extend(&vec![0; (k - 7) as usize / 8]);
     // Appends `l` in binary representation
     remaining.extend(&0_u64.to_be_bytes());
     remaining.extend(&l.to_be_bytes());

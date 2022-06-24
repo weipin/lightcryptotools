@@ -91,13 +91,13 @@ impl EllipticCurveParams {
         let element_byte_length = self.base_point_order.byte_len();
         let mut data = Vec::with_capacity(element_byte_length * 2);
 
-        let mut bytes = point.x.to_be_bytes();
-        data.append(&mut vec![0; element_byte_length - bytes.len()]);
-        data.append(&mut bytes);
+        let bytes = point.x.to_be_bytes();
+        data.extend(&vec![0; element_byte_length - bytes.len()]);
+        data.extend(&bytes);
 
-        let mut bytes = point.y.to_be_bytes();
-        data.append(&mut vec![0; element_byte_length - bytes.len()]);
-        data.append(&mut bytes);
+        let bytes = point.y.to_be_bytes();
+        data.extend(&vec![0; element_byte_length - bytes.len()]);
+        data.extend(&bytes);
 
         data
     }

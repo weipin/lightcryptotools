@@ -18,9 +18,9 @@ pub(crate) fn encode_single_value(payload: &[u8]) -> Vec<u8> {
 /// Encodes `payload` as a single value item or a list item.
 /// The item type is specified by `item_type`.
 pub(crate) fn encode_item(item_type: RlpItemType, payload: &[u8]) -> Vec<u8> {
-    let mut header = encode_payload_length(item_type, payload);
+    let header = encode_payload_length(item_type, payload);
     let mut encoded = Vec::with_capacity(header.len() + payload.len());
-    encoded.append(&mut header);
+    encoded.extend(&header);
     encoded.extend(payload);
 
     encoded
@@ -168,7 +168,7 @@ mod tests {
     fn encode_and_concat_items(items: &[(RlpItemType, &[u8])]) -> Vec<u8> {
         let mut encoded = Vec::new();
         for &(item_type, payload) in items {
-            encoded.append(&mut encode_item(item_type, payload));
+            encoded.extend(&encode_item(item_type, payload));
         }
 
         encoded

@@ -62,7 +62,7 @@ fn sha256_digest(message: &[u8], s: &mut [u32; 8], w: &mut [u32; 64]) -> Vec<u8>
     // Appends bit 1, 1-byte aligned
     remaining.push(0x80);
     // Appends zero bytes
-    remaining.append(&mut vec![0; (k - 7) as usize / 8]);
+    remaining.extend(&vec![0; (k - 7) as usize / 8]);
     // Appends `l` in binary representation
     remaining.extend(&l.to_be_bytes());
     debug_assert!(

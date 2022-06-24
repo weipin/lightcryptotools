@@ -84,7 +84,7 @@ pub(crate) fn shift_left_digits(digits: &mut Vec<Digit>, digits_len: usize, n: u
     if shifting_digits_len > 0 {
         let available_slots_len = digits.len() - digits_len;
         if available_slots_len < shifting_digits_len {
-            digits.append(&mut vec![0; shifting_digits_len - available_slots_len]);
+            digits.extend(&vec![0; shifting_digits_len - available_slots_len]);
         }
 
         digits_len += shifting_digits_len;

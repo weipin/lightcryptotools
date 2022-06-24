@@ -34,10 +34,10 @@ impl PayloadEip1559 {
         private_key: &PrivateKey,
         options: &SigningOptions,
     ) -> Result<TransactionEip1559, TransactionBuildingError> {
-        let mut payload_rlp_data = encode(&self);
+        let payload_rlp_data = encode(&self);
         let mut message = Vec::with_capacity(payload_rlp_data.len() + 1);
         message.push(TransactionEip1559::transaction_type());
-        message.append(&mut payload_rlp_data);
+        message.extend(&payload_rlp_data);
         let hash = Keccak256::new().digest(message);
 
         let (signature, recovery_id) =
@@ -58,11 +58,11 @@ impl PayloadEip1559 {
 
 impl TransactionEip1559 {
     pub fn encode(&self) -> Vec<u8> {
-        let mut rlp_data = encode(self);
+        let rlp_data = encode(self);
         let mut data = Vec::with_capacity(rlp_data.len() + 1);
 
         data.push(TransactionEip1559::transaction_type());
-        data.append(&mut rlp_data);
+        data.extend(&rlp_data);
 
         data
     }
