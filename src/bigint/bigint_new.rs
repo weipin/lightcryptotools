@@ -147,7 +147,7 @@ impl BigInt {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ParseIntError {
     CodecsError(CodecsError),

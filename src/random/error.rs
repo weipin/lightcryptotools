@@ -9,7 +9,7 @@ use std::fmt;
 use std::fmt::Display;
 
 /// An error returned by [`get_os_random_bytes`](super::os_random::generator::get_os_random_bytes).
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum GetOsRandomBytesError {
     AppleSecRandom(SecOsStatus),

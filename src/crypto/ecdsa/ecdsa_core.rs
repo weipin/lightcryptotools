@@ -22,11 +22,7 @@ pub struct Signature<'a> {
 impl<'a> Signature<'a> {
     pub fn new(r: BigInt, s: BigInt, curve_params: &'a EllipticCurveParams) -> Option<Self> {
         let signature = Signature { r, s, curve_params };
-        if signature.is_valid() {
-            Some(signature)
-        } else {
-            None
-        }
+        signature.is_valid().then_some(signature)
     }
 
     fn is_valid(&self) -> bool {
@@ -198,7 +194,7 @@ impl BigInt {
 /// For details, see SEC 1 Ver. 2.0[1], 4.1.6 Public Key Recovery Operation
 ///
 /// [1]: http://www.secg.org/SEC1-Ver-2.0.pdf
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum SignatureRecoveryId {
     LowXEvenY = 0,
@@ -227,7 +223,7 @@ impl SignatureRecoveryId {
 }
 
 /// The parity (0 for even, 1 for odd) of the y-value of a secp256k1 signature
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub(crate) enum YParity {
     Even = 0,

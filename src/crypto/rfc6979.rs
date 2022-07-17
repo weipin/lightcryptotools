@@ -142,7 +142,7 @@ impl Rfc6979 {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum GenerateNonceError {
     FailedToGenerateRandomBytes(GetOsRandomBytesError),

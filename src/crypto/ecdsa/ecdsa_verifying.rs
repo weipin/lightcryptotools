@@ -71,7 +71,7 @@ impl Default for VerifyingOptions {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum VerifyingError {
     EmptyHashNotAllowed,

@@ -20,16 +20,14 @@ impl Encodable<RlpEncodingItem> for Address {
 impl<'a> Decodable<'a, RlpDecodingItem<'a>> for Address {
     fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
         return match decoding_item.item_type {
-            RlpItemType::SingleValue => match decoding_item.decode_as_bytes() {
-                Ok(s) => {
-                    if let Some(address) = Address::from_bytes(s) {
-                        Ok(address)
-                    } else {
-                        Err(RlpDataDecodingError::InvalidFormat)
-                    }
+            RlpItemType::SingleValue => {
+                let bytes = decoding_item.decode_as_bytes()?;
+                if let Some(address) = Address::from_bytes(bytes) {
+                    Ok(address)
+                } else {
+                    Err(RlpDataDecodingError::InvalidFormat)
                 }
-                Err(err) => Err(err),
-            },
+            }
             RlpItemType::List => Err(RlpDataDecodingError::InvalidFormat),
         };
     }

@@ -9,7 +9,7 @@
 use super::core::RlpItemType;
 use super::decoding::{decode_data, decode_list_payload, RlpDataDecodingError};
 use crate::bigint::BigUint;
-use crate::tools::codable::DecodingItem;
+use crate::tools::codable::{Decodable, DecodingItem};
 use std::str::from_utf8;
 
 /// The RLP decoding type which implements `DecodingItem`.
@@ -86,6 +86,24 @@ impl<'a> DecodingItem<'a> for RlpDecodingItem<'a> {
         }
 
         Ok(decoding_items)
+    }
+}
+
+/// Makes `Vec<T>` RLP decodable. The element type `T` must be RLP decodable.
+impl<'a, T> Decodable<'a, RlpDecodingItem<'a>> for Vec<T>
+where
+    T: Decodable<'a, RlpDecodingItem<'a>>,
+{
+    fn decode_from(decoding_item: &RlpDecodingItem<'a>) -> Result<Self, RlpDataDecodingError> {
+        debug_assert!(decoding_item.item_type == RlpItemType::List);
+
+        let items = decoding_item.decode_as_items()?;
+        let mut values = Self::with_capacity(items.len());
+        for item in items {
+            let value = T::decode_from(&item)?;
+            values.push(value);
+        }
+        Ok(values)
     }
 }
 
@@ -169,27 +187,16 @@ mod tests {
     impl<'a> Decodable<'a, RlpDecodingItem<'a>> for JsonValueSingleValueU64 {
         fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
             return match decoding_item.item_type {
-                RlpItemType::SingleValue => match decoding_item.decode_as_u64() {
-                    Ok(n) => Ok(JsonValueSingleValueU64(Value::Number(Number::from(n)))),
-                    Err(err) => Err(err),
-                },
-                RlpItemType::List => match decoding_item.decode_as_items() {
-                    Ok(items) => {
-                        let mut values = Vec::with_capacity(items.len());
-                        for item in items {
-                            match Self::decode_from(&item) {
-                                Ok(value) => {
-                                    values.push(value.0);
-                                }
-                                Err(err) => {
-                                    return Err(err);
-                                }
-                            }
-                        }
-                        Ok(JsonValueSingleValueU64(Value::Array(values)))
-                    }
-                    Err(err) => Err(err),
-                },
+                RlpItemType::SingleValue => {
+                    let n = decoding_item.decode_as_u64()?;
+                    Ok(Self(Value::Number(Number::from(n))))
+                }
+                RlpItemType::List => {
+                    let values = Vec::<Self>::decode_from(decoding_item)?;
+                    Ok(Self(Value::Array(
+                        values.into_iter().map(|t| t.0).collect(),
+                    )))
+                }
             };
         }
     }
@@ -199,27 +206,16 @@ mod tests {
     impl<'a> Decodable<'a, RlpDecodingItem<'a>> for JsonValueSingleValueString {
         fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
             return match decoding_item.item_type {
-                RlpItemType::SingleValue => match decoding_item.decode_as_str() {
-                    Ok(s) => Ok(JsonValueSingleValueString(Value::String(s.into()))),
-                    Err(err) => Err(err),
-                },
-                RlpItemType::List => match decoding_item.decode_as_items() {
-                    Ok(items) => {
-                        let mut values = Vec::with_capacity(items.len());
-                        for item in items {
-                            match Self::decode_from(&item) {
-                                Ok(value) => {
-                                    values.push(value.0);
-                                }
-                                Err(err) => {
-                                    return Err(err);
-                                }
-                            }
-                        }
-                        Ok(JsonValueSingleValueString(Value::Array(values)))
-                    }
-                    Err(err) => Err(err),
-                },
+                RlpItemType::SingleValue => {
+                    let s = decoding_item.decode_as_str()?;
+                    Ok(Self(Value::String(s.into())))
+                }
+                RlpItemType::List => {
+                    let values = Vec::<Self>::decode_from(decoding_item)?;
+                    Ok(Self(Value::Array(
+                        values.into_iter().map(|t| t.0).collect(),
+                    )))
+                }
             };
         }
     }

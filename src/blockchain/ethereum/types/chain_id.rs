@@ -9,7 +9,7 @@ use std::fmt;
 use std::fmt::Display;
 
 /// Represents Chain ID
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ChainId(pub(crate) BigUint);
 
 impl From<BigUint> for ChainId {
@@ -30,7 +30,7 @@ impl Display for ChainId {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u64)]
 pub enum Chain {
     EthereumMainnet = 1,

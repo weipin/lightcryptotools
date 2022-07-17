@@ -10,7 +10,7 @@ use super::core::RlpItemType;
 use super::encoding::{encode_payload_length, encode_single_value};
 use crate::bigint::BigUint;
 use crate::tools::bytes::strip_leading_zeros;
-use crate::tools::codable::EncodingItem;
+use crate::tools::codable::{Encodable, EncodingItem};
 
 /// The RLP encoding type which implements `EncodingItem`.
 pub struct RlpEncodingItem {
@@ -50,6 +50,20 @@ impl EncodingItem for RlpEncodingItem {
 
     fn take_data(&mut self) -> Vec<u8> {
         std::mem::take(&mut self.encoded_data)
+    }
+}
+
+/// Makes `Vec<T>` RLP encodable. The element type `T` must be RLP encodable.
+impl<T> Encodable<RlpEncodingItem> for Vec<T>
+where
+    T: Encodable<RlpEncodingItem>,
+{
+    fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
+        let mut values_encoding_item = RlpEncodingItem::new();
+        for value in self {
+            value.encode_to(&mut values_encoding_item);
+        }
+        encoding_item.encode_list_payload(&mut values_encoding_item);
     }
 }
 
@@ -97,11 +111,7 @@ mod tests {
                     encoding_item.encode_str(&s);
                 }
                 Value::Array(values) => {
-                    let mut values_encoding_item = RlpEncodingItem::new();
-                    for value in values {
-                        value.encode_to(&mut values_encoding_item);
-                    }
-                    encoding_item.encode_list_payload(&mut values_encoding_item);
+                    values.encode_to(encoding_item);
                 }
                 Value::Object(_) => {
                     unimplemented!();

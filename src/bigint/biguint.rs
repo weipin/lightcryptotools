@@ -10,7 +10,7 @@ use std::fmt;
 use std::fmt::Display;
 use std::ops::{Add, Mul, Shr, Sub};
 
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Debug, PartialEq, Eq, PartialOrd)]
 pub struct BigUint(BigInt);
 
 macro_rules! impl_biguint_from_unsigned_int {

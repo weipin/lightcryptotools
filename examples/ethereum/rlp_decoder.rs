@@ -58,29 +58,18 @@ struct JsonValueWrapper(Value);
 impl<'a> Decodable<'a, RlpDecodingItem<'a>> for JsonValueWrapper {
     fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
         return match decoding_item.item_type {
-            RlpItemType::SingleValue => match decoding_item.decode_as_bytes() {
-                Ok(bytes) => Ok(JsonValueWrapper(Value::String(
+            RlpItemType::SingleValue => {
+                let bytes = decoding_item.decode_as_bytes()?;
+                Ok(JsonValueWrapper(Value::String(
                     "0x".to_owned() + &bytes_to_lower_hex(bytes),
-                ))),
-                Err(err) => Err(err),
-            },
-            RlpItemType::List => match decoding_item.decode_as_items() {
-                Ok(items) => {
-                    let mut values = Vec::with_capacity(items.len());
-                    for item in items {
-                        match Self::decode_from(&item) {
-                            Ok(value) => {
-                                values.push(value.0);
-                            }
-                            Err(err) => {
-                                return Err(err);
-                            }
-                        }
-                    }
-                    Ok(JsonValueWrapper(Value::Array(values)))
-                }
-                Err(err) => Err(err),
-            },
+                )))
+            }
+            RlpItemType::List => {
+                let values = Vec::<Self>::decode_from(decoding_item)?;
+                Ok(Self(Value::Array(
+                    values.into_iter().map(|t| t.0).collect(),
+                )))
+            }
         };
     }
 }

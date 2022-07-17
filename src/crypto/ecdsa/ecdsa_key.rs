@@ -13,7 +13,7 @@ pub struct PrivateKey<'a> {
     pub curve_params: &'a EllipticCurveParams,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct PublicKey<'a> {
     pub data: Point,
     pub curve_params: &'a EllipticCurveParams,
@@ -22,11 +22,7 @@ pub struct PublicKey<'a> {
 impl<'a> PrivateKey<'a> {
     pub fn new(data: BigInt, curve_params: &'a EllipticCurveParams) -> Option<Self> {
         let private_key = PrivateKey { data, curve_params };
-        if private_key.is_valid() {
-            Some(private_key)
-        } else {
-            None
-        }
+        private_key.is_valid().then_some(private_key)
     }
 
     fn is_valid(&self) -> bool {
@@ -46,11 +42,7 @@ impl<'a> PrivateKey<'a> {
 impl<'a> PublicKey<'a> {
     pub fn new(data: Point, curve_params: &'a EllipticCurveParams) -> Option<Self> {
         let public_key = PublicKey { data, curve_params };
-        if public_key.is_valid() {
-            Some(public_key)
-        } else {
-            None
-        }
+        public_key.is_valid().then_some(public_key)
     }
 
     fn is_valid(&self) -> bool {

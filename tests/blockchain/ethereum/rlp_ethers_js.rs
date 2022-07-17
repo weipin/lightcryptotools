@@ -79,10 +79,8 @@ impl Encodable<RlpEncodingItem> for JsonValue {
 
 impl<'a> Decodable<'a, RlpDecodingItem<'a>> for JsonValue {
     fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
-        match decode_json_value(decoding_item) {
-            Ok(value) => Ok(JsonValue(value)),
-            Err(err) => Err(err),
-        }
+        let value = decode_json_value(decoding_item)?;
+        Ok(JsonValue(value))
     }
 }
 
@@ -116,29 +114,19 @@ fn encode_json_value(value: &Value, encoding_item: &mut RlpEncodingItem) {
 
 fn decode_json_value(decoding_item: &RlpDecodingItem) -> Result<Value, RlpDataDecodingError> {
     return match decoding_item.item_type {
-        RlpItemType::SingleValue => match decoding_item.decode_as_bytes() {
-            Ok(s) => {
-                let hex = bytes_to_lower_hex(s);
-                Ok(Value::String(format!("0x{hex}")))
+        RlpItemType::SingleValue => {
+            let s = decoding_item.decode_as_bytes()?;
+            let hex = bytes_to_lower_hex(s);
+            Ok(Value::String(format!("0x{hex}")))
+        }
+        RlpItemType::List => {
+            let items = decoding_item.decode_as_items()?;
+            let mut values = Vec::with_capacity(items.len());
+            for item in items {
+                let value = decode_json_value(&item)?;
+                values.push(value);
             }
-            Err(err) => Err(err),
-        },
-        RlpItemType::List => match decoding_item.decode_as_items() {
-            Ok(items) => {
-                let mut values = Vec::with_capacity(items.len());
-                for item in items {
-                    match decode_json_value(&item) {
-                        Ok(value) => {
-                            values.push(value);
-                        }
-                        Err(err) => {
-                            return Err(err);
-                        }
-                    }
-                }
-                Ok(Value::Array(values))
-            }
-            Err(err) => Err(err),
-        },
+            Ok(Value::Array(values))
+        }
     };
 }

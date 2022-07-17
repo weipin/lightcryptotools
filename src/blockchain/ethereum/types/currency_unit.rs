@@ -17,7 +17,7 @@ use std::fmt::Display;
 /// as being 10^18 Wei... -- [Ethereum Yellow Paper][1], 2.1. Value
 ///
 /// [1]: https://github.com/ethereum/yellowpaper
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Wei(pub(crate) BigUint);
 
 impl Wei {

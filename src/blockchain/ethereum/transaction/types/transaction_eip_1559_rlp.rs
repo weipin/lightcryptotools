@@ -43,46 +43,44 @@ impl<'a> Decodable<'a, RlpDecodingItem<'a>> for TransactionEip1559 {
     fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
         return match decoding_item.item_type {
             RlpItemType::SingleValue => Err(RlpDataDecodingError::InvalidFormat),
-            RlpItemType::List => match decoding_item.decode_as_items() {
-                Ok(items) => {
-                    if items.len() != 12 {
+            RlpItemType::List => {
+                let items = decoding_item.decode_as_items()?;
+                if items.len() != 12 {
+                    return Err(RlpDataDecodingError::InvalidFormat);
+                }
+                let mut iter = items.iter();
+
+                let payload = TransactionBuilder::new()
+                    .with_chain_id(ChainId::decode_from(iter.next().unwrap())?)
+                    .with_nonce(EoaNonce::decode_from(iter.next().unwrap())?)
+                    .with_max_priority_fee_per_gas(Wei::decode_from(iter.next().unwrap())?)
+                    .with_max_fee_per_gas(Wei::decode_from(iter.next().unwrap())?)
+                    .with_gas_limit(iter.next().unwrap().decode_as_u64()?)
+                    .with_destination(Address::decode_from(iter.next().unwrap())?)
+                    .with_amount(Wei::decode_from(iter.next().unwrap())?)
+                    .with_data(iter.next().unwrap().decode_as_bytes()?.to_owned())
+                    .with_access_list(AccessList::decode_from(iter.next().unwrap())?)
+                    .take_and_build_payload_eip_1559()
+                    .map_err(|_| RlpDataDecodingError::InvalidFormat)?;
+
+                let y_parity_u64 = iter.next().unwrap().decode_as_u64()?;
+                let y_parity_u8 = u8::try_from(y_parity_u64)
+                    .map_err(|_| RlpDataDecodingError::InvalidFormat)?;
+                let y_parity = match YParity::from_u8(y_parity_u8) {
+                    None => {
                         return Err(RlpDataDecodingError::InvalidFormat);
                     }
-                    let mut iter = items.iter();
-
-                    let payload = TransactionBuilder::new()
-                        .with_chain_id(ChainId::decode_from(iter.next().unwrap())?)
-                        .with_nonce(EoaNonce::decode_from(iter.next().unwrap())?)
-                        .with_max_priority_fee_per_gas(Wei::decode_from(iter.next().unwrap())?)
-                        .with_max_fee_per_gas(Wei::decode_from(iter.next().unwrap())?)
-                        .with_gas_limit(iter.next().unwrap().decode_as_u64()?)
-                        .with_destination(Address::decode_from(iter.next().unwrap())?)
-                        .with_amount(Wei::decode_from(iter.next().unwrap())?)
-                        .with_data(iter.next().unwrap().decode_as_bytes()?.to_owned())
-                        .with_access_list(AccessList::decode_from(iter.next().unwrap())?)
-                        .take_and_build_payload_eip_1559()
-                        .map_err(|_| RlpDataDecodingError::InvalidFormat)?;
-
-                    let y_parity_u64 = iter.next().unwrap().decode_as_u64()?;
-                    let y_parity_u8 = u8::try_from(y_parity_u64)
-                        .map_err(|_| RlpDataDecodingError::InvalidFormat)?;
-                    let y_parity = match YParity::from_u8(y_parity_u8) {
-                        None => {
-                            return Err(RlpDataDecodingError::InvalidFormat);
-                        }
-                        Some(y_parity) => y_parity,
-                    };
-                    let r = iter.next().unwrap().decode_as_biguint()?;
-                    let s = iter.next().unwrap().decode_as_biguint()?;
-                    Ok(TransactionEip1559 {
-                        payload,
-                        y_parity,
-                        r,
-                        s,
-                    })
-                }
-                Err(err) => Err(err),
-            },
+                    Some(y_parity) => y_parity,
+                };
+                let r = iter.next().unwrap().decode_as_biguint()?;
+                let s = iter.next().unwrap().decode_as_biguint()?;
+                Ok(TransactionEip1559 {
+                    payload,
+                    y_parity,
+                    r,
+                    s,
+                })
+            }
         };
     }
 }

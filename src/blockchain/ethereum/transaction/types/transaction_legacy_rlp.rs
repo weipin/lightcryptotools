@@ -34,33 +34,30 @@ impl<'a> Decodable<'a, RlpDecodingItem<'a>> for TransactionLegacy {
     fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
         return match decoding_item.item_type {
             RlpItemType::SingleValue => Err(RlpDataDecodingError::InvalidFormat),
-            RlpItemType::List => match decoding_item.decode_as_items() {
-                Ok(items) => {
-                    if items.len() != 9 {
-                        return Err(RlpDataDecodingError::InvalidFormat);
-                    }
-                    let mut iter = items.iter();
-
-                    let payload = TransactionBuilder::new()
-                        .with_nonce(EoaNonce::decode_from(iter.next().unwrap())?)
-                        .with_gas_price(Wei::decode_from(iter.next().unwrap())?)
-                        .with_gas_limit(iter.next().unwrap().decode_as_u64()?)
-                        .with_destination(Address::decode_from(iter.next().unwrap())?)
-                        .with_amount(Wei::decode_from(iter.next().unwrap())?)
-                        .with_data(iter.next().unwrap().decode_as_bytes()?.to_owned())
-                        .take_and_build_payload_legacy()
-                        .map_err(|_| RlpDataDecodingError::InvalidFormat)?;
-
-                    let v_u64 = iter.next().unwrap().decode_as_u64()?;
-                    let v =
-                        u8::try_from(v_u64).map_err(|_| RlpDataDecodingError::InvalidFormat)?;
-                    let r = iter.next().unwrap().decode_as_biguint()?;
-                    let s = iter.next().unwrap().decode_as_biguint()?;
-
-                    Ok(TransactionLegacy { payload, v, r, s })
+            RlpItemType::List => {
+                let items = decoding_item.decode_as_items()?;
+                if items.len() != 9 {
+                    return Err(RlpDataDecodingError::InvalidFormat);
                 }
-                Err(err) => Err(err),
-            },
+                let mut iter = items.iter();
+
+                let payload = TransactionBuilder::new()
+                    .with_nonce(EoaNonce::decode_from(iter.next().unwrap())?)
+                    .with_gas_price(Wei::decode_from(iter.next().unwrap())?)
+                    .with_gas_limit(iter.next().unwrap().decode_as_u64()?)
+                    .with_destination(Address::decode_from(iter.next().unwrap())?)
+                    .with_amount(Wei::decode_from(iter.next().unwrap())?)
+                    .with_data(iter.next().unwrap().decode_as_bytes()?.to_owned())
+                    .take_and_build_payload_legacy()
+                    .map_err(|_| RlpDataDecodingError::InvalidFormat)?;
+
+                let v_u64 = iter.next().unwrap().decode_as_u64()?;
+                let v = u8::try_from(v_u64).map_err(|_| RlpDataDecodingError::InvalidFormat)?;
+                let r = iter.next().unwrap().decode_as_biguint()?;
+                let s = iter.next().unwrap().decode_as_biguint()?;
+
+                Ok(TransactionLegacy { payload, v, r, s })
+            }
         };
     }
 }

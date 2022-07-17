@@ -16,7 +16,7 @@ use std::fmt::{Display, Formatter};
 
 pub(crate) struct P1363;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SignatureDecodingError {
     InvalidFormat,

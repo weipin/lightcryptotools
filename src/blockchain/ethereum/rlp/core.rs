@@ -15,7 +15,7 @@
 /// - a string (i.e. byte array) is an item
 /// - a list of items is an item
 /// ..."
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RlpItemType {
     SingleValue,
     List,

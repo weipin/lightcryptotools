@@ -7,7 +7,7 @@
 use crate::bigint::BigInt;
 use crate::math::elliptic_curve::{Curve, Point};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct EllipticCurveParams {
     pub curve: Curve,
     pub base_point: Point,

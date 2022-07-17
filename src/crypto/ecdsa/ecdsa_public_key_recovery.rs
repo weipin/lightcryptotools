@@ -164,7 +164,7 @@ impl Default for RecoveryOptions {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum RecoveryError {
     EmptyHashNotAllowed,

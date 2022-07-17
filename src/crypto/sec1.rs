@@ -13,7 +13,7 @@ use std::fmt::{Display, Formatter};
 
 pub(crate) struct Sec1;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum PointDecodingError {
     InvalidFormat,

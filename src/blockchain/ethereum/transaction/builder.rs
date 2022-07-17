@@ -12,7 +12,7 @@ use crate::crypto::ecdsa::SigningError;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum TransactionBuildingError {
     MissingFields,

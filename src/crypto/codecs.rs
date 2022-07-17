@@ -152,7 +152,7 @@ pub fn hex_to_bytes<T: AsRef<[u8]>>(hex: T) -> Result<Vec<u8>, CodecsError> {
     Ok(bytes)
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum CodecsError {
     InvalidCharFound,

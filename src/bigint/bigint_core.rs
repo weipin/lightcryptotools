@@ -28,7 +28,7 @@ impl BigInt {
 /// Denotes the sign of a big integer.
 ///
 /// A big integer, including 0, can be denoted as either positive or negative.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Sign {
     Positive,
     Negative,

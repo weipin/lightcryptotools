@@ -122,7 +122,7 @@ impl Default for SigningOptions {
         }
     }
 }
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum SigningError {
     EmptyHashNotAllowed,
