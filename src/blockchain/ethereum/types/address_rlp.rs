@@ -9,7 +9,7 @@ use crate::blockchain::ethereum::rlp::decoding::RlpDataDecodingError;
 use crate::blockchain::ethereum::rlp::encoder::RlpEncodingItem;
 use crate::blockchain::ethereum::rlp::RlpItemType;
 use crate::blockchain::ethereum::types::address::Address;
-use crate::tools::codable::{Decodable, DecodingItem, Encodable, EncodingItem};
+use crate::tools::codable::{Decodable, Encodable};
 
 impl Encodable<RlpEncodingItem> for Address {
     fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
@@ -19,7 +19,7 @@ impl Encodable<RlpEncodingItem> for Address {
 
 impl<'a> Decodable<'a, RlpDecodingItem<'a>> for Address {
     fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
-        return match decoding_item.item_type {
+        match decoding_item.item_type {
             RlpItemType::SingleValue => {
                 let bytes = decoding_item.decode_as_bytes()?;
                 if let Some(address) = Address::from_bytes(bytes) {
@@ -29,6 +29,6 @@ impl<'a> Decodable<'a, RlpDecodingItem<'a>> for Address {
                 }
             }
             RlpItemType::List => Err(RlpDataDecodingError::InvalidFormat),
-        };
+        }
     }
 }

@@ -8,7 +8,7 @@ use super::storage_key::StorageKey;
 use crate::blockchain::ethereum::rlp::decoder::RlpDecodingItem;
 use crate::blockchain::ethereum::rlp::decoding::RlpDataDecodingError;
 use crate::blockchain::ethereum::rlp::encoder::RlpEncodingItem;
-use crate::tools::codable::{Decodable, DecodingItem, Encodable, EncodingItem};
+use crate::tools::codable::{Decodable, Encodable};
 
 impl Encodable<RlpEncodingItem> for StorageKey {
     fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {

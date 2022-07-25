@@ -5,20 +5,21 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::currency_unit::Wei;
+use crate::bigint::BigUint;
 use crate::blockchain::ethereum::rlp::decoder::RlpDecodingItem;
 use crate::blockchain::ethereum::rlp::decoding::RlpDataDecodingError;
 use crate::blockchain::ethereum::rlp::encoder::RlpEncodingItem;
-use crate::tools::codable::{Decodable, DecodingItem, Encodable, EncodingItem};
+use crate::tools::codable::{Decodable, Encodable};
 
 impl Encodable<RlpEncodingItem> for Wei {
     fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
-        encoding_item.encode_biguint(&self.0);
+        self.0.encode_to(encoding_item);
     }
 }
 
 impl<'a> Decodable<'a, RlpDecodingItem<'a>> for Wei {
     fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
-        let n = decoding_item.decode_as_biguint()?;
+        let n = BigUint::decode_from(decoding_item)?;
         Ok(Wei(n))
     }
 }

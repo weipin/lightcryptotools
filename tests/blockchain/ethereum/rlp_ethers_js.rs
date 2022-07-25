@@ -19,9 +19,7 @@ use lightcryptotools::blockchain::ethereum::rlp::decoding::RlpDataDecodingError;
 use lightcryptotools::blockchain::ethereum::rlp::encoder::RlpEncodingItem;
 use lightcryptotools::blockchain::ethereum::rlp::RlpItemType;
 use lightcryptotools::crypto::codecs::{bytes_to_lower_hex, hex_to_bytes};
-use lightcryptotools::tools::codable::{
-    decode, encode, Decodable, DecodingItem, Encodable, EncodingItem,
-};
+use lightcryptotools::tools::codable::{decode, encode, Decodable, Encodable, EncodingItem};
 use serde_json::Value;
 use std::fs::File;
 

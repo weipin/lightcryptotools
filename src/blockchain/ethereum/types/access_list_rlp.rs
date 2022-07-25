@@ -10,7 +10,7 @@ use crate::blockchain::ethereum::rlp::decoding::RlpDataDecodingError;
 use crate::blockchain::ethereum::rlp::encoder::RlpEncodingItem;
 use crate::blockchain::ethereum::rlp::RlpItemType;
 use crate::blockchain::ethereum::types::{Address, StorageKey};
-use crate::tools::codable::{Decodable, DecodingItem, Encodable, EncodingItem};
+use crate::tools::codable::{Decodable, Encodable, EncodingItem};
 
 impl Encodable<RlpEncodingItem> for AccessListItem {
     fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
@@ -52,12 +52,12 @@ impl Encodable<RlpEncodingItem> for AccessList {
 
 impl<'a> Decodable<'a, RlpDecodingItem<'a>> for AccessList {
     fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
-        return match decoding_item.item_type {
+        match decoding_item.item_type {
             RlpItemType::SingleValue => Err(RlpDataDecodingError::InvalidFormat),
             RlpItemType::List => {
                 let access_list_items = Vec::<AccessListItem>::decode_from(decoding_item)?;
                 Ok(AccessList(access_list_items))
             }
-        };
+        }
     }
 }

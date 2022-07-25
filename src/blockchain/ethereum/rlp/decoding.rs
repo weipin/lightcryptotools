@@ -9,6 +9,7 @@
 
 use super::core::RlpItemType;
 use super::core::{UintByteLengthOfPayloadByteLength, UintPayloadByteLength};
+use std::error::Error;
 use std::fmt;
 use std::fmt::Display;
 
@@ -177,6 +178,8 @@ impl Display for RlpDataDecodingError {
         }
     }
 }
+
+impl Error for RlpDataDecodingError {}
 
 #[cfg(test)]
 mod tests {

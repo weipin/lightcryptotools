@@ -27,7 +27,7 @@ use lightcryptotools::blockchain::ethereum::rlp::decoder::RlpDecodingItem;
 use lightcryptotools::blockchain::ethereum::rlp::decoding::RlpDataDecodingError;
 use lightcryptotools::blockchain::ethereum::rlp::RlpItemType;
 use lightcryptotools::crypto::codecs::{bytes_to_lower_hex, hex_to_bytes};
-use lightcryptotools::tools::codable::{decode, Decodable, DecodingItem};
+use lightcryptotools::tools::codable::{decode, Decodable};
 use serde_json::{to_string_pretty, Value};
 
 fn main() {

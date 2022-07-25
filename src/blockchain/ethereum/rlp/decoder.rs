@@ -10,7 +10,6 @@ use super::core::RlpItemType;
 use super::decoding::{decode_data, decode_list_payload, RlpDataDecodingError};
 use crate::bigint::BigUint;
 use crate::tools::codable::{Decodable, DecodingItem};
-use std::str::from_utf8;
 
 /// The RLP decoding type which implements `DecodingItem`.
 pub struct RlpDecodingItem<'a> {
@@ -18,63 +17,15 @@ pub struct RlpDecodingItem<'a> {
     payload: &'a [u8],
 }
 
-impl<'a> DecodingItem<'a> for RlpDecodingItem<'a> {
-    type Error = RlpDataDecodingError;
-
-    fn new_from_data(data: &'a [u8]) -> Result<Self, Self::Error> {
-        let (item_type, payload) = decode_data(data)?;
-        Ok(RlpDecodingItem { item_type, payload })
-    }
-
-    fn decode_as_u64(&self) -> Result<u64, Self::Error> {
-        if self.item_type != RlpItemType::SingleValue {
-            return Err(RlpDataDecodingError::InvalidFormat);
-        }
-
-        if self.payload.len() > std::mem::size_of::<u64>() {
-            return Err(RlpDataDecodingError::InvalidFormat);
-        }
-
-        let mut n_bytes = [0; std::mem::size_of::<u64>()];
-        n_bytes[(std::mem::size_of::<u64>() - self.payload.len())..]
-            .copy_from_slice(self.payload);
-        let n = u64::from_be_bytes(n_bytes);
-
-        Ok(n)
-    }
-
-    fn decode_as_biguint(&self) -> Result<BigUint, Self::Error> {
-        if self.item_type != RlpItemType::SingleValue {
-            return Err(RlpDataDecodingError::InvalidFormat);
-        }
-
-        Ok(if self.payload.is_empty() {
-            // BigInt represents 0 as [0_u8] -- empty is not allowed.
-            BigUint::from_be_bytes(&[0])
-        } else {
-            BigUint::from_be_bytes(self.payload)
-        })
-    }
-
-    fn decode_as_str(&self) -> Result<&str, Self::Error> {
-        if self.item_type != RlpItemType::SingleValue {
-            return Err(RlpDataDecodingError::InvalidFormat);
-        }
-
-        match from_utf8(self.payload) {
-            Ok(str) => Ok(str),
-            Err(_) => Err(RlpDataDecodingError::InvalidFormat),
-        }
-    }
-
-    fn decode_as_bytes(&self) -> Result<&[u8], Self::Error> {
+impl<'a> RlpDecodingItem<'a> {
+    pub fn decode_as_bytes(&self) -> Result<&[u8], RlpDataDecodingError> {
         if self.item_type != RlpItemType::SingleValue {
             return Err(RlpDataDecodingError::InvalidFormat);
         }
         Ok(self.payload)
     }
 
-    fn decode_as_items(&self) -> Result<Vec<Self>, Self::Error> {
+    pub fn decode_as_items(&self) -> Result<Vec<Self>, RlpDataDecodingError> {
         if self.item_type != RlpItemType::List {
             return Err(RlpDataDecodingError::InvalidFormat);
         }
@@ -86,6 +37,72 @@ impl<'a> DecodingItem<'a> for RlpDecodingItem<'a> {
         }
 
         Ok(decoding_items)
+    }
+}
+
+impl<'a> DecodingItem<'a> for RlpDecodingItem<'a> {
+    type Error = RlpDataDecodingError;
+
+    fn new_from_data(data: &'a [u8]) -> Result<Self, Self::Error> {
+        let (item_type, payload) = decode_data(data)?;
+        Ok(RlpDecodingItem { item_type, payload })
+    }
+}
+
+impl<'a> Decodable<'a, RlpDecodingItem<'a>> for u64 {
+    fn decode_from(decoding_item: &RlpDecodingItem<'a>) -> Result<Self, RlpDataDecodingError> {
+        if decoding_item.item_type != RlpItemType::SingleValue {
+            return Err(RlpDataDecodingError::InvalidFormat);
+        }
+
+        if decoding_item.payload.len() > std::mem::size_of::<u64>() {
+            return Err(RlpDataDecodingError::InvalidFormat);
+        }
+
+        let mut n_bytes = [0; std::mem::size_of::<u64>()];
+        n_bytes[(std::mem::size_of::<u64>() - decoding_item.payload.len())..]
+            .copy_from_slice(decoding_item.payload);
+        let n = u64::from_be_bytes(n_bytes);
+
+        Ok(n)
+    }
+}
+
+impl<'a> Decodable<'a, RlpDecodingItem<'a>> for String {
+    fn decode_from(decoding_item: &RlpDecodingItem<'a>) -> Result<Self, RlpDataDecodingError> {
+        if decoding_item.item_type != RlpItemType::SingleValue {
+            return Err(RlpDataDecodingError::InvalidFormat);
+        }
+
+        match String::from_utf8(decoding_item.payload.to_vec()) {
+            Ok(str) => Ok(str),
+            Err(_) => Err(RlpDataDecodingError::InvalidFormat),
+        }
+    }
+}
+
+impl<'a> Decodable<'a, RlpDecodingItem<'a>> for Vec<u8> {
+    fn decode_from(decoding_item: &RlpDecodingItem<'a>) -> Result<Self, RlpDataDecodingError> {
+        if decoding_item.item_type != RlpItemType::SingleValue {
+            return Err(RlpDataDecodingError::InvalidFormat);
+        }
+
+        Ok(decoding_item.payload.to_vec())
+    }
+}
+
+impl<'a> Decodable<'a, RlpDecodingItem<'a>> for BigUint {
+    fn decode_from(decoding_item: &RlpDecodingItem<'a>) -> Result<Self, RlpDataDecodingError> {
+        if decoding_item.item_type != RlpItemType::SingleValue {
+            return Err(RlpDataDecodingError::InvalidFormat);
+        }
+
+        Ok(if decoding_item.payload.is_empty() {
+            // BigInt represents 0 as [0_u8] -- empty is not allowed.
+            BigUint::from_be_bytes(&[0])
+        } else {
+            BigUint::from_be_bytes(decoding_item.payload)
+        })
     }
 }
 
@@ -123,7 +140,7 @@ mod tests {
             item_type: RlpItemType::SingleValue,
             payload: &[],
         };
-        assert_eq!(decoding_item.decode_as_u64().unwrap(), 0);
+        assert_eq!(u64::decode_from(&decoding_item).unwrap(), 0);
     }
 
     #[test]
@@ -133,7 +150,7 @@ mod tests {
             item_type: RlpItemType::SingleValue,
             payload: &[1, 2, 3, 4, 5, 6, 7, 8, 9],
         };
-        assert!(decoding_item.decode_as_u64().is_err());
+        assert!(u64::decode_from(&decoding_item).is_err());
     }
 
     #[test]
@@ -188,7 +205,7 @@ mod tests {
         fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
             return match decoding_item.item_type {
                 RlpItemType::SingleValue => {
-                    let n = decoding_item.decode_as_u64()?;
+                    let n = u64::decode_from(decoding_item)?;
                     Ok(Self(Value::Number(Number::from(n))))
                 }
                 RlpItemType::List => {
@@ -207,7 +224,7 @@ mod tests {
         fn decode_from(decoding_item: &RlpDecodingItem) -> Result<Self, RlpDataDecodingError> {
             return match decoding_item.item_type {
                 RlpItemType::SingleValue => {
-                    let s = decoding_item.decode_as_str()?;
+                    let s = String::decode_from(decoding_item)?;
                     Ok(Self(Value::String(s.into())))
                 }
                 RlpItemType::List => {

@@ -6,5 +6,6 @@
 
 pub mod account;
 pub mod rlp;
+pub mod ssz;
 pub mod transaction;
 pub mod types;

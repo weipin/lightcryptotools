@@ -13,10 +13,10 @@ impl Encodable<RlpEncodingItem> for PayloadLegacy {
         let mut list_encoding_item = RlpEncodingItem::new();
         self.nonce.encode_to(&mut list_encoding_item);
         self.gas_price.encode_to(&mut list_encoding_item);
-        list_encoding_item.encode_u64(self.gas_limit);
+        self.gas_limit.encode_to(&mut list_encoding_item);
         self.destination.encode_to(&mut list_encoding_item);
         self.amount.encode_to(&mut list_encoding_item);
-        list_encoding_item.encode_bytes(&self.data);
+        self.data.encode_to(&mut list_encoding_item);
 
         encoding_item.encode_list_payload(&mut list_encoding_item);
     }

@@ -17,6 +17,22 @@ pub struct RlpEncodingItem {
     encoded_data: Vec<u8>,
 }
 
+impl RlpEncodingItem {
+    fn extend_encoded_data(&mut self, bytes: &[u8]) {
+        self.encoded_data.extend(bytes);
+    }
+
+    pub fn encode_bytes(&mut self, bytes: &[u8]) {
+        self.extend_encoded_data(&encode_single_value(bytes));
+    }
+
+    pub fn encode_list_payload(&mut self, item: &mut RlpEncodingItem) {
+        let header = encode_payload_length(RlpItemType::List, &item.encoded_data);
+        self.extend_encoded_data(&header);
+        self.extend_encoded_data(&item.encoded_data);
+    }
+}
+
 impl EncodingItem for RlpEncodingItem {
     fn new() -> RlpEncodingItem {
         RlpEncodingItem {
@@ -24,32 +40,30 @@ impl EncodingItem for RlpEncodingItem {
         }
     }
 
-    fn encode_u64(&mut self, n: u64) {
-        self.encoded_data
-            .extend(&encode_single_value(strip_leading_zeros(&n.to_be_bytes())));
-    }
-
-    fn encode_biguint(&mut self, n: &BigUint) {
-        self.encoded_data
-            .extend(&encode_single_value(strip_leading_zeros(&n.to_be_bytes())));
-    }
-
-    fn encode_str(&mut self, s: &str) {
-        self.encoded_data.extend(&encode_single_value(s.as_bytes()));
-    }
-
-    fn encode_bytes(&mut self, bytes: &[u8]) {
-        self.encoded_data.extend(&encode_single_value(bytes));
-    }
-
-    fn encode_list_payload(&mut self, item: &mut RlpEncodingItem) {
-        let header = encode_payload_length(RlpItemType::List, &item.encoded_data);
-        self.encoded_data.extend(&header);
-        self.encoded_data.extend(&item.encoded_data);
-    }
-
     fn take_data(&mut self) -> Vec<u8> {
         std::mem::take(&mut self.encoded_data)
+    }
+}
+
+impl Encodable<RlpEncodingItem> for u64 {
+    fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
+        encoding_item.extend_encoded_data(&encode_single_value(strip_leading_zeros(
+            &self.to_be_bytes(),
+        )));
+    }
+}
+
+impl Encodable<RlpEncodingItem> for BigUint {
+    fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
+        encoding_item.extend_encoded_data(&encode_single_value(strip_leading_zeros(
+            &self.to_be_bytes(),
+        )));
+    }
+}
+
+impl Encodable<RlpEncodingItem> for &str {
+    fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
+        encoding_item.extend_encoded_data(&encode_single_value(self.as_bytes()));
     }
 }
 
@@ -67,14 +81,31 @@ where
     }
 }
 
+impl Encodable<RlpEncodingItem> for Vec<u8> {
+    fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
+        encoding_item.encode_bytes(self);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::codecs::hex_to_bytes;
+    use crate::crypto::codecs::{bytes_to_lower_hex, hex_to_bytes};
     use crate::tools::codable::{encode, Encodable};
     use devtools::path::integration_testing_data_path;
     use serde_json::Value;
     use std::fs::File;
+
+    #[test]
+    fn test_take_data_emptying_internal_data() {
+        let mut encoding_item = RlpEncodingItem::new();
+        12_u64.encode_to(&mut encoding_item);
+        assert_eq!(bytes_to_lower_hex(&encoding_item.take_data()), "0c");
+
+        // Reuses `encoding_item`
+        19_u64.encode_to(&mut encoding_item);
+        assert_eq!(bytes_to_lower_hex(&encoding_item.take_data()), "13");
+    }
 
     #[test]
     fn test_examples() {
@@ -105,10 +136,10 @@ mod tests {
                 }
                 Value::Number(number) => {
                     let n = number.as_u64().unwrap();
-                    encoding_item.encode_u64(n);
+                    n.encode_to(encoding_item);
                 }
                 Value::String(s) => {
-                    encoding_item.encode_str(&s);
+                    s.as_str().encode_to(encoding_item);
                 }
                 Value::Array(values) => {
                     values.encode_to(encoding_item);

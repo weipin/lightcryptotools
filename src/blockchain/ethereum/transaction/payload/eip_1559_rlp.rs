@@ -19,10 +19,10 @@ impl Encodable<RlpEncodingItem> for PayloadEip1559 {
         self.max_priority_fee_per_gas
             .encode_to(&mut list_encoding_item);
         self.max_fee_per_gas.encode_to(&mut list_encoding_item);
-        list_encoding_item.encode_u64(self.gas_limit);
+        self.gas_limit.encode_to(&mut list_encoding_item);
         self.destination.encode_to(&mut list_encoding_item);
         self.amount.encode_to(&mut list_encoding_item);
-        list_encoding_item.encode_bytes(&self.data);
+        self.data.encode_to(&mut list_encoding_item);
         self.access_list.encode_to(&mut list_encoding_item);
 
         encoding_item.encode_list_payload(&mut list_encoding_item);

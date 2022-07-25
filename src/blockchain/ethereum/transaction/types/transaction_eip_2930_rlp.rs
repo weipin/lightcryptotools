@@ -5,6 +5,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::transaction_eip_2930::TransactionEip2930;
+use crate::bigint::BigUint;
 use crate::blockchain::ethereum::rlp::decoder::RlpDecodingItem;
 use crate::blockchain::ethereum::rlp::decoding::RlpDataDecodingError;
 use crate::blockchain::ethereum::rlp::encoder::RlpEncodingItem;
@@ -12,7 +13,7 @@ use crate::blockchain::ethereum::rlp::RlpItemType;
 use crate::blockchain::ethereum::transaction::TransactionBuilder;
 use crate::blockchain::ethereum::types::{AccessList, Address, ChainId, EoaNonce, Wei};
 use crate::crypto::ecdsa::ecdsa_core::YParity;
-use crate::tools::codable::{Decodable, DecodingItem, Encodable, EncodingItem};
+use crate::tools::codable::{Decodable, Encodable, EncodingItem};
 
 impl Encodable<RlpEncodingItem> for TransactionEip2930 {
     fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
@@ -21,14 +22,14 @@ impl Encodable<RlpEncodingItem> for TransactionEip2930 {
         self.payload.chain_id.encode_to(&mut list_encoding_item);
         self.payload.nonce.encode_to(&mut list_encoding_item);
         self.payload.gas_price.encode_to(&mut list_encoding_item);
-        list_encoding_item.encode_u64(self.payload.gas_limit);
+        self.payload.gas_limit.encode_to(&mut list_encoding_item);
         self.payload.destination.encode_to(&mut list_encoding_item);
         self.payload.amount.encode_to(&mut list_encoding_item);
-        list_encoding_item.encode_bytes(&self.payload.data);
+        self.payload.data.encode_to(&mut list_encoding_item);
         self.payload.access_list.encode_to(&mut list_encoding_item);
-        list_encoding_item.encode_u64(self.y_parity as u64);
-        list_encoding_item.encode_biguint(&self.r);
-        list_encoding_item.encode_biguint(&self.s);
+        (self.y_parity as u64).encode_to(&mut list_encoding_item);
+        self.r.encode_to(&mut list_encoding_item);
+        self.s.encode_to(&mut list_encoding_item);
 
         encoding_item.encode_list_payload(&mut list_encoding_item);
     }
@@ -49,15 +50,15 @@ impl<'a> Decodable<'a, RlpDecodingItem<'a>> for TransactionEip2930 {
                     .with_chain_id(ChainId::decode_from(iter.next().unwrap())?)
                     .with_nonce(EoaNonce::decode_from(iter.next().unwrap())?)
                     .with_gas_price(Wei::decode_from(iter.next().unwrap())?)
-                    .with_gas_limit(iter.next().unwrap().decode_as_u64()?)
+                    .with_gas_limit(u64::decode_from(iter.next().unwrap())?)
                     .with_destination(Address::decode_from(iter.next().unwrap())?)
                     .with_amount(Wei::decode_from(iter.next().unwrap())?)
-                    .with_data(iter.next().unwrap().decode_as_bytes()?.to_owned())
+                    .with_data(Vec::<u8>::decode_from(iter.next().unwrap())?)
                     .with_access_list(AccessList::decode_from(iter.next().unwrap())?)
                     .take_and_build_payload_eip_2930()
                     .map_err(|_| RlpDataDecodingError::InvalidFormat)?;
 
-                let y_parity_u64 = iter.next().unwrap().decode_as_u64()?;
+                let y_parity_u64 = u64::decode_from(iter.next().unwrap())?;
                 let y_parity_u8 = u8::try_from(y_parity_u64)
                     .map_err(|_| RlpDataDecodingError::InvalidFormat)?;
                 let y_parity = match YParity::from_u8(y_parity_u8) {
@@ -66,8 +67,8 @@ impl<'a> Decodable<'a, RlpDecodingItem<'a>> for TransactionEip2930 {
                     }
                     Some(y_parity) => y_parity,
                 };
-                let r = iter.next().unwrap().decode_as_biguint()?;
-                let s = iter.next().unwrap().decode_as_biguint()?;
+                let r = BigUint::decode_from(iter.next().unwrap())?;
+                let s = BigUint::decode_from(iter.next().unwrap())?;
                 Ok(TransactionEip2930 {
                     payload,
                     y_parity,

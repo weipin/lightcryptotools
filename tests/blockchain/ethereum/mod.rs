@@ -6,4 +6,5 @@
 
 mod eoa_private_key_to_address;
 mod rlp_ethers_js;
+mod ssz_worked_example;
 mod transaction_signing_ethers_js;

@@ -12,20 +12,20 @@ use crate::blockchain::ethereum::rlp::encoder::RlpEncodingItem;
 use crate::blockchain::ethereum::rlp::RlpItemType;
 use crate::blockchain::ethereum::transaction::TransactionBuilder;
 use crate::blockchain::ethereum::types::{Address, EoaNonce, Wei};
-use crate::tools::codable::{Decodable, DecodingItem, Encodable, EncodingItem};
+use crate::tools::codable::{Decodable, Encodable, EncodingItem};
 
 impl Encodable<RlpEncodingItem> for TransactionEip155 {
     fn encode_to(&self, encoding_item: &mut RlpEncodingItem) {
         let mut list_encoding_item = RlpEncodingItem::new();
         self.payload.nonce.encode_to(&mut list_encoding_item);
         self.payload.gas_price.encode_to(&mut list_encoding_item);
-        list_encoding_item.encode_u64(self.payload.gas_limit);
+        self.payload.gas_limit.encode_to(&mut list_encoding_item);
         self.payload.destination.encode_to(&mut list_encoding_item);
         self.payload.amount.encode_to(&mut list_encoding_item);
-        list_encoding_item.encode_bytes(&self.payload.data);
-        list_encoding_item.encode_biguint(&self.v);
-        list_encoding_item.encode_biguint(&self.r);
-        list_encoding_item.encode_biguint(&self.s);
+        self.payload.data.encode_to(&mut list_encoding_item);
+        self.v.encode_to(&mut list_encoding_item);
+        self.r.encode_to(&mut list_encoding_item);
+        self.s.encode_to(&mut list_encoding_item);
 
         encoding_item.encode_list_payload(&mut list_encoding_item);
     }
@@ -44,13 +44,13 @@ impl<'a> Decodable<'a, RlpDecodingItem<'a>> for TransactionEip155 {
 
                 let nonce = EoaNonce::decode_from(iter.next().unwrap())?;
                 let gas_price = Wei::decode_from(iter.next().unwrap())?;
-                let gas_limit = iter.next().unwrap().decode_as_u64()?;
+                let gas_limit = u64::decode_from(iter.next().unwrap())?;
                 let destination = Address::decode_from(iter.next().unwrap())?;
                 let amount = Wei::decode_from(iter.next().unwrap())?;
-                let data = iter.next().unwrap().decode_as_bytes()?.to_owned();
-                let v = iter.next().unwrap().decode_as_biguint()?;
-                let r = iter.next().unwrap().decode_as_biguint()?;
-                let s = iter.next().unwrap().decode_as_biguint()?;
+                let data = Vec::<u8>::decode_from(iter.next().unwrap())?;
+                let v = BigUint::decode_from(iter.next().unwrap())?;
+                let r = BigUint::decode_from(iter.next().unwrap())?;
+                let s = BigUint::decode_from(iter.next().unwrap())?;
 
                 // The v of EIP-155 is greater or equal to 35 (>=35):
                 // `v = CHAIN_ID * 2 + 35 or v = CHAIN_ID * 2 + 36`
