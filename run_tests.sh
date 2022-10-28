@@ -9,6 +9,11 @@ cargo test --doc
 # Tests time-consuming cases
 cargo test --release -- --ignored
 
+# cargo +nightly careful test
+
+# cargo clean
+# cargo miri test
+
 # cargo bench
 
 # Tests bigint for u8_digit

@@ -11,8 +11,6 @@
 //!
 //! cargo run --example eoa_gen_vanity_address -- 3C
 
-extern crate core;
-
 use lightcryptotools::blockchain::ethereum::account::{
     EoaPrivateKey, EoaPrivateKeyData, EOA_PRIVATE_KEY_DATA_BYTE_LENGTH,
 };

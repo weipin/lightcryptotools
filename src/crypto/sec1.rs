@@ -68,7 +68,7 @@ impl EllipticCurveParamsEncoding for Sec1 {
                 }
             };
             let y_hex_bytes = &hex_bytes[point_element_hex_len + 2..];
-            let y = match BigInt::from_hex(&y_hex_bytes) {
+            let y = match BigInt::from_hex(y_hex_bytes) {
                 Ok(y) => y,
                 Err(_) => {
                     return Err(Box::new(PointDecodingError::InvalidY));

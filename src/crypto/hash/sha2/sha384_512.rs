@@ -43,7 +43,7 @@ impl UnkeyedHash for Sha384 {
 
         let mut digest = Vec::with_capacity(std::mem::size_of::<u64>() * 6);
         for item in self.s.iter().take(6) {
-            digest.extend(&item.to_be_bytes());
+            digest.extend(item.to_be_bytes());
         }
         debug_assert_eq!(digest.len(), Self::OUTPUT_BYTE_LENGTH);
 
@@ -82,7 +82,7 @@ impl UnkeyedHash for Sha512 {
 
         let mut digest = Vec::with_capacity(std::mem::size_of::<u64>() * 8);
         for item in self.s {
-            digest.extend(&item.to_be_bytes());
+            digest.extend(item.to_be_bytes());
         }
         debug_assert_eq!(digest.len(), Self::OUTPUT_BYTE_LENGTH);
 
@@ -115,8 +115,8 @@ fn sha384_512_digest_core(
     // Appends zero bytes
     remaining.extend(&vec![0; (k - 7) as usize / 8]);
     // Appends `l` in binary representation
-    remaining.extend(&0_u64.to_be_bytes());
-    remaining.extend(&l.to_be_bytes());
+    remaining.extend(0_u64.to_be_bytes());
+    remaining.extend(l.to_be_bytes());
     debug_assert!(
         remaining.len() == Sha512::INPUT_BLOCK_BYTE_LENGTH
             || remaining.len() == Sha512::INPUT_BLOCK_BYTE_LENGTH * 2
@@ -287,7 +287,7 @@ fn gamma1(x: u64) -> u64 {
     x.rotate_right(19) ^ x.rotate_right(61) ^ x >> 6
 }
 
-static S_SHA384: [u64; 8] = [
+const S_SHA384: [u64; 8] = [
     0xcbbb9d5dc1059ed8,
     0x629a292a367cd507,
     0x9159015a3070dd17,
@@ -298,7 +298,7 @@ static S_SHA384: [u64; 8] = [
     0x47b5481dbefa4fa4,
 ];
 
-static S_SHA512: [u64; 8] = [
+const S_SHA512: [u64; 8] = [
     0x6a09e667f3bcc908,
     0xbb67ae8584caa73b,
     0x3c6ef372fe94f82b,

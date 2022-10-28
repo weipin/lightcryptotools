@@ -64,7 +64,7 @@ fn sha256_digest(message: &[u8], s: &mut [u32; 8], w: &mut [u32; 64]) -> Vec<u8>
     // Appends zero bytes
     remaining.extend(&vec![0; (k - 7) as usize / 8]);
     // Appends `l` in binary representation
-    remaining.extend(&l.to_be_bytes());
+    remaining.extend(l.to_be_bytes());
     debug_assert!(
         remaining.len() == Sha256::INPUT_BLOCK_BYTE_LENGTH
             || remaining.len() == Sha256::INPUT_BLOCK_BYTE_LENGTH * 2
@@ -77,7 +77,7 @@ fn sha256_digest(message: &[u8], s: &mut [u32; 8], w: &mut [u32; 64]) -> Vec<u8>
     // output
     let mut digest = Vec::with_capacity(8 * std::mem::size_of::<u32>());
     for item in s {
-        digest.extend(&item.to_be_bytes());
+        digest.extend(item.to_be_bytes());
     }
     digest
 }
@@ -226,7 +226,7 @@ fn gamma1(x: u32) -> u32 {
     x.rotate_right(17) ^ x.rotate_right(19) ^ x >> 10
 }
 
-static S_SHA256: [u32; 8] = [
+const S_SHA256: [u32; 8] = [
     0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
     0x5be0cd19,
 ];

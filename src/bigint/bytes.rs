@@ -33,7 +33,7 @@ pub(crate) fn be_digits_to_be_bytes(digits: &[Digit]) -> Vec<u8> {
         bytes.extend(&first_bytes[leading_zero_bytes_len as usize..]);
 
         for digit in elements {
-            bytes.extend(&digit.to_be_bytes());
+            bytes.extend(digit.to_be_bytes());
         }
         bytes
     } else {
